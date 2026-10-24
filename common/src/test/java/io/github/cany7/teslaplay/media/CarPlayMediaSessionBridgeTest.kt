@@ -337,6 +337,57 @@ class CarPlayMediaSessionBridgeTest {
         assertTrue(source.listeners.isEmpty())
     }
 
+    @Test fun serviceDoesNotRepostPositionOnlyUpdatesInBluetoothOrMediaMode() {
+        val controller = org.robolectric.Robolectric.buildService(io.github.cany7.teslaplay.TeslaPlaySessionService::class.java).create()
+        val service = controller.get(); idle()
+        val bridge = org.robolectric.util.ReflectionHelpers.getField<CarPlayMediaSessionBridge>(service, "media")
+        val source = Source(); val output = Output()
+        try {
+            bridge.bind(source, output, systemAudioEnabled = false)
+            source.update(playing()); idle()
+            val connection = shadowOf(service).lastForegroundNotification
+            repeat(20) { source.update(playing().copy(positionMs = it * 1000L)); idle() }
+            assertSame(connection, shadowOf(service).lastForegroundNotification)
+            assertTrue(connection.flags and android.app.Notification.FLAG_ONLY_ALERT_ONCE != 0)
+            bridge.bind(source, output)
+            source.update(playing()); idle()
+            val mediaNotification = shadowOf(service).lastForegroundNotification
+            repeat(20) { source.update(playing().copy(positionMs = it * 1000L)); idle() }
+            assertSame(mediaNotification, shadowOf(service).lastForegroundNotification)
+            source.update(playing().copy(status = PhonePlaybackStatus.PAUSED)); idle()
+            val paused = shadowOf(service).lastForegroundNotification
+            assertNotSame(mediaNotification, paused)
+            assertEquals(mediaNotification.`when`, paused.`when`)
+            assertEquals("Play", paused.actions[1].title.toString())
+            source.update(playing().copy(title = "Next song", trackRevision = 1)); idle()
+            assertEquals("Next song", shadowOf(service).lastForegroundNotification.extras.getString(android.app.Notification.EXTRA_TITLE))
+        } finally { controller.destroy() }
+    }
+
+    @Test fun connectionNotificationTracksActualHttpAndHttpsListeners() {
+        val context = RuntimeEnvironment.getApplication()
+        val identity = io.github.cany7.teslaplay.SyntheticMfiIdentity.create()
+        io.github.cany7.teslaplay.MfiAssetStore(context.noBackupFilesDir)
+            .installFiles({ identity.key.inputStream() }, { identity.certificate.inputStream() })
+        io.github.cany7.teslaplay.web.WebListenSettings.saveHttpsEnabled(context, false)
+        val controller = org.robolectric.Robolectric.buildService(io.github.cany7.teslaplay.TeslaPlaySessionService::class.java).create()
+        val service = controller.get()
+        fun text() = shadowOf(service).lastForegroundNotification.extras.getString(android.app.Notification.EXTRA_TEXT)!!
+        try {
+            service.onStartCommand(android.content.Intent(), 0, 1); idle()
+            assertTrue(text().contains("HTTP · 8080"))
+            val timestamp = shadowOf(service).lastForegroundNotification.`when`
+            assertNull(io.github.cany7.teslaplay.web.WebSession.setHttpsEnabled(context, true)); idle()
+            assertTrue(text().contains("HTTPS · 8443"))
+            assertEquals(timestamp, shadowOf(service).lastForegroundNotification.`when`)
+            val port = java.net.ServerSocket(0).use { it.localPort }
+            assertNull(io.github.cany7.teslaplay.web.WebSession.setHttpsPort(context, port)); idle()
+            assertTrue(text().contains("HTTPS · $port"))
+            assertNull(io.github.cany7.teslaplay.web.WebSession.setHttpsEnabled(context, false)); idle()
+            assertTrue(text().contains("HTTP · 8080"))
+        } finally { controller.destroy() }
+    }
+
     @Test fun browserReadinessPreventsFocusEvenBeforeFirstRemotePcmArrives() {
         val context: Context = RuntimeEnvironment.getApplication()
         val source = Source(); val output = Output().apply { remoteReady = true }

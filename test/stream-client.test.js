@@ -935,8 +935,8 @@ test('the paired socket publishes phone state to Media Session and clears it bef
   assert.equal(session.metadata, null);
 });
 
-const shortcutStatus = (ws, buttons = true, sourceId = 'carplay', inputReady = true) => ws.onmessage({ data: JSON.stringify({
-  type: 'status', sourceId, inputReady, displayPreferences: { buttons }, width: 1280, height: 720,
+const shortcutStatus = (ws, buttons = true, sourceId = 'carplay', inputReady = true, night = false) => ws.onmessage({ data: JSON.stringify({
+  type: 'status', sourceId, inputReady, displayPreferences: { buttons, night }, width: 1280, height: 720,
 }) });
 const shortcutEvent = () => ({ stopped: false, stopPropagation() { this.stopped = true; } });
 
@@ -1008,4 +1008,18 @@ test('an immersive interrupted connection restores its hiding choice on retry an
   assert.equal(f.element('topbar').hidden, false);
   assert.equal(f.element('pairing').hidden, false);
   assert.equal(f.document.fullscreenElement, null);
+});
+
+
+test('shortcut colors follow phone day/night status without sending controls or renegotiating', async () => {
+  const f = fixture(), ws = await f.connect(); f.reportViewport();
+  const before = ws.sent.length;
+  shortcutStatus(ws, true, 'carplay', true, true);
+  assert.equal(f.element('virtual-buttons').classList.contains('day'), false);
+  shortcutStatus(ws, true, 'carplay', true, false);
+  assert.equal(f.element('virtual-buttons').classList.contains('day'), true);
+  shortcutStatus(ws, true, 'carplay', true, true);
+  assert.equal(f.element('virtual-buttons').classList.contains('day'), false);
+  assert.equal(ws.sent.length, before);
+  assert.equal(f.sockets.length, 1);
 });

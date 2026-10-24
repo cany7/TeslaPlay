@@ -23,6 +23,7 @@ import io.github.cany7.teslaplay.airplay.AirPlayConfig
 import io.github.cany7.teslaplay.airplay.AirPlayContact
 import io.github.cany7.teslaplay.airplay.AirPlayDeviceInfo
 import io.github.cany7.teslaplay.airplay.AirPlayIdentity
+import io.github.cany7.teslaplay.airplay.AirPlayKnobState
 import io.github.cany7.teslaplay.airplay.AirPlayListenerIdentity
 import io.github.cany7.teslaplay.airplay.AirPlayMediaHandler
 import io.github.cany7.teslaplay.airplay.AirPlaySession
@@ -396,6 +397,28 @@ class CarPlayController(
             touchExecutor.execute { session.sendTouch(contacts) }
             true
         } catch (_: Exception) {
+            false
+        }
+    }
+
+    /** Keep shortcut writes off the UI thread and behind any queued touch release. */
+    fun sendVirtualButton(action: String): Boolean {
+        if (action !in listOf("home", "back", "siri", "previous", "play", "next") || !touchReady) return false
+        val session = activeSession ?: return false
+        return try {
+            touchExecutor.execute {
+                if (closed || activeSession !== session || !session.touchReady) return@execute
+                when (action) {
+                    "home" -> session.sendKnob(AirPlayKnobState(home = true))
+                    "back" -> session.sendKnob(AirPlayKnobState(back = true))
+                    "siri" -> session.invokeSiri()
+                    "previous" -> session.sendMedia(5)
+                    "play" -> session.sendMedia(3)
+                    "next" -> session.sendMedia(4)
+                }
+            }
+            true
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
             false
         }
     }

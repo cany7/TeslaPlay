@@ -154,6 +154,19 @@ try {
   status({ sourceId: 'carplay', displayPreferences: { buttons: true } });
   await wait(`!document.getElementById('virtual-buttons').hidden && !document.querySelector('#virtual-buttons button').disabled`);
   assert.equal(await displayBounds(), boundsBeforeDiagnostics, 'Showing shortcuts preserves projection bounds');
+  await command('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+  status({ displayPreferences: { buttons: true, night: true } });
+  await wait(`getComputedStyle(document.getElementById('virtual-buttons')).color === 'rgb(241, 241, 241)'`);
+  assert.equal(await evaluate(`getComputedStyle(document.getElementById('virtual-buttons')).colorScheme`), 'dark');
+  status({ displayPreferences: { buttons: true, night: false } });
+  await wait(`getComputedStyle(document.getElementById('virtual-buttons')).color === 'rgb(33, 33, 33)'`);
+  assert.equal(await evaluate(`getComputedStyle(document.getElementById('virtual-buttons')).colorScheme`), 'light');
+  await command('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+  assert.equal(await evaluate(`getComputedStyle(document.getElementById('virtual-buttons')).colorScheme`), 'light', 'Browser theme cannot override phone day mode');
+  status({ displayPreferences: { buttons: true, night: true } });
+  await wait(`getComputedStyle(document.getElementById('virtual-buttons')).colorScheme === 'dark'`);
+  assert.equal(await displayBounds(), boundsBeforeDiagnostics, 'Day/night switching preserves projection bounds');
+
   assert.equal(await evaluate(`Array.from(document.querySelectorAll('#virtual-buttons button')).every(b => b.getBoundingClientRect().height >= 48 && b.getBoundingClientRect().width >= 64)`), true);
   await evaluate(`document.querySelectorAll('#virtual-buttons button').forEach(button => button.click())`);
   for (let attempt = 0; shortcuts.length < 6 && attempt < 50; attempt++) await pause(20);
@@ -321,7 +334,7 @@ try {
   frame(); await wait(showing);
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true, connections, imageAcks: acks, webpProbes, jpegFallbacks,
-    checks: ['ordinary topbar without settings overlay', 'phone-controlled shortcuts preserve bounds and roundtrip all actions', 'diagnostics show received size and unknown SoC', 'collapsed pairing-page diagnostics preserve projection bounds', 'five-touch source', 'read-only source', 'WebP capability probe', 'WebP touch with zoom compensation', 'JPEG fallback after corrupt WebP', 'two-image pipeline with exact ACKs',
+    checks: ['ordinary topbar without settings overlay', 'phone-controlled shortcuts preserve bounds and roundtrip all actions', 'shortcut day/night follows phone appearance independently of browser theme', 'diagnostics show received size and unknown SoC', 'collapsed pairing-page diagnostics preserve projection bounds', 'five-touch source', 'read-only source', 'WebP capability probe', 'WebP touch with zoom compensation', 'JPEG fallback after corrupt WebP', 'two-image pipeline with exact ACKs',
       'decode without overlay flashes', 'gap releases touch', 'deadline without status', 'cancelled deadline',
       'same-size rebuild', 'cancelled mouse drag cannot cross video epochs', 'old frame rejection', 'rotation', 'real socket reconnect', 'native browser Media Session metadata and cover',
       'media action roundtrip', 'desktop right drag, scroll and versioned keyboard', 'desktop blur releases modifiers', 'phone-authoritative pause', 'capability-gated seek and final drag position', 'media cleanup and retired callback isolation'] }, null, 2));

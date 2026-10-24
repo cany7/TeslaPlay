@@ -27,7 +27,6 @@ import io.github.cany7.teslaplay.media.MediaCommandResult
 import io.github.cany7.teslaplay.media.NowPlayingState
 import io.github.cany7.teslaplay.shared.R as UiR
 import io.github.cany7.teslaplay.web.RootAccess
-import io.github.cany7.teslaplay.web.WebListenSettings
 import io.github.cany7.teslaplay.web.WebSession
 import io.github.cany7.teslaplay.projection.projectionSessions
 import java.util.concurrent.CompletableFuture
@@ -37,6 +36,13 @@ class TeslaPlaySessionService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private lateinit var media: CarPlayMediaSessionBridge
     private var sessionSubscription: AutoCloseable? = null
+    private var listenerSubscription: AutoCloseable? = null
+    private val notificationStartedAt = System.currentTimeMillis()
+    private data class NotificationContent(
+        val title: String, val text: String, val token: MediaSession.Token?, val artwork: Bitmap?,
+        val playing: Boolean, val commandGeneration: Long, val serviceTypes: Int,
+    )
+    private var publishedNotification: NotificationContent? = null
     private val main = Handler(Looper.getMainLooper())
     private var destroyed = false
     private var currentState = NowPlayingState()
@@ -69,6 +75,9 @@ class TeslaPlaySessionService : Service() {
                 if (!destroyed) updateNotification()
             }
         browserMediaBridge = media
+        listenerSubscription = WebSession.observeListeners {
+            main.post { if (!destroyed) updateNotification() }
+        }
         sessionSubscription =
             projectionSessions.subscribe { _ ->
                 main.post {
@@ -156,6 +165,39 @@ class TeslaPlaySessionService : Service() {
 
     private fun updateNotification() {
         if (destroyed) return
+        var types = 0
+        if (Build.VERSION.SDK_INT >= 29) {
+            types = ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            if (currentSession != null && currentState.available && currentState.playing ||
+                projectionSessions.snapshot()?.let { it.capabilities.audioPlayback && !it.capabilities.browserAudio } == true)
+                types = types or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            if (
+                Build.VERSION.SDK_INT >= 30 &&
+                    projectionSessions.snapshot()?.capabilities?.microphone == true &&
+                    AirPlayPersistence.loadMicrophoneSource(this) != CarPlayMicrophoneSource.DISABLED &&
+                    checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
+                        PackageManager.PERMISSION_GRANTED
+            ) {
+                types = types or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            }
+        }
+        val session = currentSession?.takeIf { currentState.available }
+        val content = if (session != null) {
+            NotificationContent(
+                currentState.title?.takeIf { it.isNotBlank() }
+                    ?: currentState.appName?.takeIf { it.isNotBlank() } ?: getString(R.string.app_name),
+                listOfNotNull(currentState.artist, currentState.album).filter { it.isNotBlank() }.joinToString(" · "),
+                session.sessionToken, currentArtwork, currentState.playing, media.commandGeneration, types,
+            )
+        } else {
+            val endpoint = WebSession.httpsListenerPort?.takeIf { WebSession.httpsReady }?.let { "HTTPS · $it" }
+                ?: WebSession.httpListenerPort?.let { "HTTP · $it" }
+            NotificationContent(getString(R.string.app_name),
+                endpoint?.let { getString(UiR.string.notification_streaming_running, it) }
+                    ?: getString(UiR.string.ui_preparing_streaming_service),
+                null, null, false, 0, types)
+        }
+        if (publishedNotification == content) return
         val open =
             PendingIntent.getActivity(
                 this,
@@ -169,19 +211,12 @@ class TeslaPlaySessionService : Service() {
                 .setSmallIcon(R.drawable.ic_teslaplay_notification)
                 .setContentIntent(open)
                 .setOngoing(true)
-        val session = currentSession
-        if (session != null && currentState.available) {
+                .setWhen(notificationStartedAt)
+                .setOnlyAlertOnce(true)
+        if (session != null) {
             builder
-                .setContentTitle(
-                    currentState.title?.takeIf { it.isNotBlank() }
-                        ?: currentState.appName?.takeIf { it.isNotBlank() }
-                        ?: getString(R.string.app_name)
-                )
-                .setContentText(
-                    listOfNotNull(currentState.artist, currentState.album)
-                        .filter { it.isNotBlank() }
-                        .joinToString(" · ")
-                )
+                .setContentTitle(content.title)
+                .setContentText(content.text)
                 .setLargeIcon(currentArtwork)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .addAction(
@@ -220,15 +255,9 @@ class TeslaPlaySessionService : Service() {
                     Intent(this, TeslaPlaySessionService::class.java).setAction(ACTION_STOP),
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 )
-            val port =
-                if (WebSession.running) WebSession.httpPort else WebListenSettings.httpPort(this)
             builder
-                .setContentTitle(getString(R.string.app_name))
-                .setContentText(
-                    if (WebSession.running)
-                        getString(UiR.string.notification_streaming_running, port)
-                    else getString(UiR.string.ui_preparing_streaming_service)
-                )
+                .setContentTitle(content.title)
+                .setContentText(content.text)
                 .addAction(
                     Notification.Action.Builder(
                             Icon.createWithResource(this, R.drawable.ic_media_stop),
@@ -239,28 +268,16 @@ class TeslaPlaySessionService : Service() {
                 )
         }
         val notification = builder.build()
-        if (Build.VERSION.SDK_INT >= 29) {
-            var types = ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-            if (currentSession != null && currentState.available && currentState.playing ||
-                projectionSessions.snapshot()?.let { it.capabilities.audioPlayback && !it.capabilities.browserAudio } == true)
-                types = types or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-            if (
-                Build.VERSION.SDK_INT >= 30 &&
-                    projectionSessions.snapshot()?.capabilities?.microphone == true &&
-                    AirPlayPersistence.loadMicrophoneSource(this) != CarPlayMicrophoneSource.DISABLED &&
-                    checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
-                        PackageManager.PERMISSION_GRANTED
-            ) {
-                types = types or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-            }
-            startForeground(NOTIFICATION_ID, notification, types)
-        } else startForeground(NOTIFICATION_ID, notification)
+        if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIFICATION_ID, notification, types)
+        else startForeground(NOTIFICATION_ID, notification)
+        publishedNotification = content
     }
 
     override fun onDestroy() {
         destroyed = true
         if (browserMediaBridge === media) browserMediaBridge = null
         sessionSubscription?.close()
+        listenerSubscription?.close()
         media.close()
         runWebAction { WebSession.stop() }
         wakeLock?.let { if (it.isHeld) it.release() }

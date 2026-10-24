@@ -4,6 +4,7 @@ export function createVirtualButtons({ element, send, release, onFailure }) {
   const buttons = [...element.querySelectorAll('[data-action]')];
   function reset() {
     element.hidden = true;
+    element.classList.remove('day');
     buttons.forEach(button => { button.disabled = true; });
   }
   element.addEventListener('pointerdown', event => { release(); event.stopPropagation(); });
@@ -19,6 +20,7 @@ export function createVirtualButtons({ element, send, release, onFailure }) {
     connected(value) { online = value; reset(); },
     receive(data) {
       element.hidden = !online || data.displayPreferences?.buttons !== true;
+      element.classList.toggle('day', data.displayPreferences?.night === false);
       buttons.forEach(button => { button.disabled = data.sourceId !== 'carplay' || !data.inputReady; });
     },
   };

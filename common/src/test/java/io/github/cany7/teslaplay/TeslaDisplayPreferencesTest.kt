@@ -14,6 +14,20 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [29])
 class TeslaDisplayPreferencesTest {
+    @Test fun shortcutNightStatusUsesTheSameAppearancePreferenceAsCarPlay() {
+        val app = RuntimeEnvironment.getApplication()
+        for (systemNight in listOf(false, true)) {
+            val context = app.createConfigurationContext(android.content.res.Configuration(app.resources.configuration).apply {
+                uiMode = (uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK.inv()) or
+                    if (systemNight) android.content.res.Configuration.UI_MODE_NIGHT_YES else android.content.res.Configuration.UI_MODE_NIGHT_NO
+            })
+            for (appearance in CarPlayAppearance.entries) {
+                AirPlayPersistence.saveAppearance(app, appearance)
+                assertEquals(appearance.night(systemNight), Display.status(context).getBoolean("night"))
+            }
+        }
+    }
+
     @Test fun profilesSurviveReloadWithoutChangingCodecAndFrameRate() {
         val app = RuntimeEnvironment.getApplication()
         AirPlayPersistence.saveHevcEnabled(app, true)

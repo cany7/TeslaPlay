@@ -150,6 +150,14 @@ internal object WebSession {
         val target = inputSession
         target != null && projectionSessions.touch(target, contacts)
     }
+    private val listenerObservers = java.util.concurrent.CopyOnWriteArrayList<() -> Unit>()
+    fun observeListeners(listener: () -> Unit): AutoCloseable {
+        listenerObservers.add(listener)
+        listener()
+        return AutoCloseable { listenerObservers.remove(listener) }
+    }
+    private fun listenersChanged() { listenerObservers.forEach { it() } }
+
     val running
         get() = server?.ready == true
 
@@ -339,6 +347,7 @@ internal object WebSession {
             server = next
             httpPort = port
             error = null
+            listenersChanged()
             mdns = WebMdns(context.applicationContext)
             experienceContext = context.applicationContext
             var previousSource = inputSession
@@ -408,6 +417,8 @@ internal object WebSession {
                                             error.userMessage(context),
                                         )
                             }
+                        } finally {
+                            listenersChanged()
                         }
                     },
                     "teslaplay-lan-tls",
@@ -462,6 +473,7 @@ internal object WebSession {
         }
         if (current == null || port == previousPort) WebListenSettings.saveHttpPort(context, port)
         httpPort = port
+        listenersChanged()
         TeslaHttpCompatibility.retry()
         return null
     }
@@ -545,6 +557,7 @@ internal object WebSession {
                     tls = null
                     tlsError = null
                     old?.stopPreservingPairing()
+                    listenersChanged()
                     TeslaHttpCompatibility.retry()
                     null
                 }
@@ -659,6 +672,7 @@ internal object WebSession {
                         context.getString(
                             UiR.string.ui_could_not_restore_the_previous_https_listener_restart_the
                         )
+                    listenersChanged()
                     return context.getString(
                         UiR.string.ui_https_update_failed_original_certificate_and_ports_were_kept
                     )
@@ -675,6 +689,7 @@ internal object WebSession {
         httpsPort = port
         tlsError = null
         if (!samePort) old?.stopPreservingPairing()
+        listenersChanged()
         return null
     }
 
@@ -903,6 +918,7 @@ internal object WebSession {
         videoActive = false
         code = ""
         generation++
+        listenersChanged()
     }
 
     fun inspectPairing(payload: String) = server?.pairing?.inspect(payload)

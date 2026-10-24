@@ -2,6 +2,8 @@
 package io.github.cany7.teslaplay.web
 
 import android.content.Context
+import io.github.cany7.teslaplay.AirPlayPersistence
+import io.github.cany7.teslaplay.isDarkMode
 import org.json.JSONObject
 import kotlin.math.floor
 
@@ -55,4 +57,5 @@ internal object TeslaDisplayPreferences {
     fun saveButtons(context: Context, show: Boolean) = preferences(context).edit().putBoolean(BUTTONS_KEY, show).apply()
     fun pending(config: Config) = config.enabled && config.profile().output() != WebSession.appliedBrowserViewport
     fun status(context: Context): JSONObject = JSONObject().put("buttons", buttons(context))
+        .put("night", AirPlayPersistence.loadAppearance(context).night(isDarkMode(context.resources.configuration.uiMode)))
 }

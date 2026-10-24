@@ -26,6 +26,8 @@
 .audio-details > div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Shortcut visibility does not change the negotiated canvas. */
-#virtual-buttons{position:fixed;z-index:10;bottom:max(12px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:max-content;max-width:96%;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;background:#151515e8;border-radius:12px;padding:8px;touch-action:manipulation}
+#virtual-buttons{position:fixed;z-index:10;bottom:max(12px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:max-content;max-width:96%;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;color:#f1f1f1;background:#151515e8;color-scheme:dark;border-radius:12px;padding:8px;touch-action:manipulation}
 #virtual-buttons button{min-height:48px;padding:0 14px}
-@media(prefers-color-scheme:light){#virtual-buttons{color:#212121;background:#e7e7e7f5}}
+#virtual-buttons.day{color:#212121;background:#e7e7e7f5;color-scheme:light}
+#virtual-buttons.day button{border-color:#909090}
+#virtual-buttons.day button:active{background:#c8c8c8}

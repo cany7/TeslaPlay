@@ -449,16 +449,7 @@ class CarPlayHostActivity : ComponentActivity() {
         setContentView(buildContentView().also(ServerWindow::fitContent))
         activeDisplaySize = DisplaySize(1280, 720)
         WebSession.setVirtualButtonHandler { action ->
-            activeAirPlaySession?.let { session ->
-                when (action) {
-                    "home" -> session.sendKnob(io.github.cany7.teslaplay.airplay.AirPlayKnobState(home = true))
-                    "back" -> session.sendKnob(io.github.cany7.teslaplay.airplay.AirPlayKnobState(back = true))
-                    "siri" -> session.invokeSiri()
-                    "previous" -> session.sendMedia(5)
-                    "play" -> session.sendMedia(3)
-                    "next" -> session.sendMedia(4)
-                }
-            }
+            controller?.sendVirtualButton(action)
         }
         WebSession.setH264FallbackHandler {
             if (h264FallbackAttempted || !hevcEnabled || !CarPlayBackgroundSession.isOwner(this) ||
