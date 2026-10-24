@@ -287,7 +287,6 @@ class CarPlayHostActivity : ComponentActivity() {
     private var statusView: TextView? = null
     private var statusScrollView: ScrollView? = null
     private var stageStatusView: TextView? = null
-    private var resolutionValueView: TextView? = null
     private var resolutionPreviewView: TextView? = null
     private var hotspotStatusView: TextView? = null
     private var manualHotspotFields: View? = null
@@ -306,7 +305,7 @@ class CarPlayHostActivity : ComponentActivity() {
     private var currentSurfaceTexture: SurfaceTexture? = null
     private var activeDisplaySize: DisplaySize? = null
     private var pendingDisplaySize: DisplaySize? = null
-    private var displayScaleTenths = CarPlayDisplayScale.DEFAULT_TENTHS
+    private val displayScaleTenths = CarPlayDisplayScale.DEFAULT_TENTHS
     private var uiScalePercent = CarPlayUiScale.DEFAULT
     private var displayDiagnosticAttempt: String? = null
     private var hevcEnabled = true
@@ -440,10 +439,23 @@ class CarPlayHostActivity : ComponentActivity() {
         advancedAudioChannelMappingSupported =
             resources.getBoolean(R.bool.config_advanced_audio_channel_mapping)
         airPlayIdentity = AirPlayPersistence.loadIdentity(this)
+        if (!CarPlayBackgroundSession.hasSession()) WebSession.refreshConnectionPreferences(this)
         loadPersistedSettings()
         locationPermissionAvailable = hasFineLocationPermission()
         setContentView(buildContentView().also(ServerWindow::fitContent))
         activeDisplaySize = DisplaySize(1280, 720)
+        WebSession.setVirtualButtonHandler { action ->
+            activeAirPlaySession?.let { session ->
+                when (action) {
+                    "home" -> session.sendKnob(io.github.cany7.teslaplay.airplay.AirPlayKnobState(home = true))
+                    "back" -> session.sendKnob(io.github.cany7.teslaplay.airplay.AirPlayKnobState(back = true))
+                    "siri" -> session.invokeSiri()
+                    "previous" -> session.sendMedia(5)
+                    "play" -> session.sendMedia(3)
+                    "next" -> session.sendMedia(4)
+                }
+            }
+        }
         WebSession.setBrowserViewportListener { width, height ->
             mainHandler.post { scheduleBrowserDisplaySize(width, height) }
         }
@@ -482,7 +494,6 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun loadPersistedSettings() {
         microphoneSource = AirPlayPersistence.loadMicrophoneSource(this)
-        displayScaleTenths = AirPlayPersistence.loadDisplayScaleTenths(this)
         // Size is now chosen only through CarPlaySize; ignore the canvas scale older builds stored.
         uiScalePercent = CarPlayUiScale.DEFAULT
         hevcEnabled = AirPlayPersistence.loadHevcEnabled(this)
@@ -728,6 +739,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     override fun onDestroy() {
         WebSession.setBrowserViewportListener(null)
+        WebSession.setVirtualButtonHandler(null)
         mainHandler.removeCallbacks(applyDisplaySize)
         mainHandler.removeCallbacks(expireOldLogLines)
         currentSurface?.let { surface ->
@@ -963,85 +975,6 @@ class CarPlayHostActivity : ComponentActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = dp(40) },
-        )
-
-        val resolutionHeader = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        resolutionHeader.addView(
-            menuText(getString(UiR.string.host_resolution), 20f, MENU_SECONDARY),
-            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
-        )
-        val resolutionValue = menuText(
-            CarPlayDisplayScale.label(displayScaleTenths),
-            28f,
-            MENU_ACCENT,
-            bold = true,
-        )
-        resolutionHeader.addView(
-            resolutionValue,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ),
-        )
-        content.addView(
-            resolutionHeader,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(14) },
-        )
-
-        val seekBar = SeekBar(this).apply {
-            max = CarPlayDisplayScale.MAX_TENTHS - CarPlayDisplayScale.MIN_TENTHS
-            progress = displayScaleTenths - CarPlayDisplayScale.MIN_TENTHS
-            splitTrack = false
-            progressTintList = ColorStateList.valueOf(MENU_ACCENT)
-            thumbTintList = ColorStateList.valueOf(MENU_ACCENT)
-            setOnSeekBarChangeListener(
-                object : SeekBar.OnSeekBarChangeListener {
-                    override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                        displayScaleTenths = CarPlayDisplayScale.sanitize(
-                            CarPlayDisplayScale.MIN_TENTHS + progress,
-                        )
-                        updateResolutionMenu()
-                    }
-
-                    override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
-                    override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
-                },
-            )
-        }
-        content.addView(
-            seekBar,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(8) },
-        )
-
-        val range = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-        range.addView(
-            menuText("0.3x", 15f, MENU_SECONDARY),
-            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
-        )
-        range.addView(
-            menuText("1.0x", 15f, MENU_SECONDARY),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ),
-        )
-        content.addView(
-            range,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ),
         )
 
         content.addView(
@@ -1343,7 +1276,6 @@ class CarPlayHostActivity : ComponentActivity() {
             }
         }
 
-        resolutionValueView = resolutionValue
         resolutionPreviewView = preview
         this.hotspotStatusView = hotspotStatusView
         updateHotspotStatusBlock()
@@ -1366,7 +1298,6 @@ class CarPlayHostActivity : ComponentActivity() {
         AirPlayPersistence.saveLocationReportingEnabled(this, locationReportingEnabled)
         AirPlayPersistence.saveAutoStartOnBoot(this, autoStartOnBoot)
         AirPlayPersistence.saveAdvancedAudioChannelMapping(this, advancedAudioChannelMapping)
-        AirPlayPersistence.saveDisplayScaleTenths(this, displayScaleTenths)
         AirPlayPersistence.saveFps(this, fps)
         AirPlayPersistence.saveStreamTechnology(this, streamTechnology)
         AirPlayPersistence.saveWidthPhysicalMm(this, widthPhysicalMm)
@@ -2484,7 +2415,6 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     private fun updateResolutionMenu() {
-        resolutionValueView?.text = CarPlayDisplayScale.label(displayScaleTenths)
         val native = activeDisplaySize ?: currentActivitySize()
         val resolution = if (native == null) {
             getString(UiR.string.host_handshake_resolution_waiting_for_display)
@@ -2997,7 +2927,13 @@ class CarPlayHostActivity : ComponentActivity() {
         // The settings page can change branding while this activity remains in the back stack.
         simulatedManufacturerName = AirPlayPersistence.loadSimulatedManufacturerName(this)
         val config = createRuntimeConfig()
-        val airPlayConfig = createAirPlayConfig(size)
+        // Saved presets apply only when this connection is being created, never by a resize.
+        val preset = io.github.cany7.teslaplay.web.TeslaDisplayPreferences.load(this)
+        val connectionSize = if (preset.enabled)
+            preset.profile().output().let { DisplaySize(it.first, it.second) } else size
+        activeDisplaySize = connectionSize
+        WebSession.browserDisplayApplied(connectionSize.width, connectionSize.height)
+        val airPlayConfig = createAirPlayConfig(connectionSize)
         val locationProvider: Iap2LocationProvider = WebSession.location.createProvider(
             if (locationReportingEnabled) {
                 AndroidCarPlayLocationProvider(this)
@@ -3080,7 +3016,10 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun scheduleDisplaySize(width: Int, height: Int) {
         if (width <= 0 || height <= 0 || shuttingDown.get()) return
-        val browserSize = WebSession.currentBrowserViewport.takeIf { WebSession.adaptiveBrowserSize }
+        // Surface/window changes cannot apply a saved-but-pending browser profile mid-session.
+        // Explicit Apply uses scheduleBrowserDisplaySize instead.
+        if (controller != null) return
+        val browserSize = WebSession.currentBrowserViewport
         val size = browserSize?.let { DisplaySize(it.first, it.second) } ?: DisplaySize(1280, 720)
         if (size == activeDisplaySize || size == pendingDisplaySize) return
         pendingDisplaySize = size
@@ -3098,12 +3037,6 @@ class CarPlayHostActivity : ComponentActivity() {
             DisplaySize(even(width * scale), even(height * scale))
         }
         if (size == activeDisplaySize || size == pendingDisplaySize) return
-        activeDisplaySize?.let { active ->
-            if (kotlin.math.abs(size.width - active.width) <= 8 &&
-                kotlin.math.abs(size.height - active.height) <= 8 &&
-                kotlin.math.abs(size.width.toDouble() / size.height - active.width.toDouble() / active.height) < 0.01
-            ) return
-        }
         appendLog("Adaptive browser display requested: ${size.width}x${size.height}")
         pendingDisplaySize = size
         mainHandler.removeCallbacks(applyDisplaySize)

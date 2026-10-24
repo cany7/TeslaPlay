@@ -76,10 +76,6 @@ internal class SettingsViewModel(
                                 AirPlayPersistence.loadWidthPhysicalMm(app)
                             )
                             .ordinal,
-                    ChoiceSetting.RESOLUTION to
-                        listOf(10, 8, 6)
-                            .indexOf(AirPlayPersistence.loadDisplayScaleTenths(app))
-                            .coerceAtLeast(0),
                     ChoiceSetting.FPS to if (AirPlayPersistence.loadFps(app) == 60) 1 else 0,
                     ChoiceSetting.STREAM to AirPlayPersistence.loadStreamTechnology(app).ordinal,
                     ChoiceSetting.IMAGE_FORMAT to AirPlayPersistence.loadImageFormat(app).ordinal,
@@ -110,7 +106,6 @@ internal class SettingsViewModel(
                 mapOf(
                     ToggleSetting.AUTO_CONNECT to TeslaPlayPreferences.autoConnect(app),
                     ToggleSetting.AUTO_START to AirPlayPersistence.loadAutoStartOnBoot(app),
-                    ToggleSetting.ADAPTIVE_SIZE to AirPlayPersistence.loadAdaptiveBrowserSize(app),
                     ToggleSetting.HEVC to AirPlayPersistence.loadHevcEnabled(app),
                     ToggleSetting.RIGHT_HAND to AirPlayPersistence.loadRightHandDrive(app),
                     ToggleSetting.NAVIGATION to BydOutputSettings.enabled(app),
@@ -156,19 +151,15 @@ internal class SettingsViewModel(
                         app,
                         CarPlaySize.entries[index].widthMillimeters,
                     )
-                    SettingsEffect.Reconnect()
-                }
-                ChoiceSetting.RESOLUTION -> {
-                    AirPlayPersistence.saveDisplayScaleTenths(app, listOf(10, 8, 6)[index])
-                    SettingsEffect.Reconnect()
+                    SettingsEffect.None
                 }
                 ChoiceSetting.FPS -> {
                     AirPlayPersistence.saveFps(app, if (index == 1) 60 else 30)
-                    SettingsEffect.Reconnect()
+                    SettingsEffect.None
                 }
                 ChoiceSetting.STREAM -> {
                     AirPlayPersistence.saveStreamTechnology(app, StreamTechnology.entries[index])
-                    SettingsEffect.Reconnect()
+                    SettingsEffect.None
                 }
                 ChoiceSetting.IMAGE_FORMAT -> {
                     AirPlayPersistence.saveImageFormat(app, ImageFormat.entries[index])
@@ -176,7 +167,7 @@ internal class SettingsViewModel(
                 }
                 ChoiceSetting.RECOVERY -> {
                     AirPlayPersistence.saveRtcRecoveryPolicy(app, RtcRecoveryPolicy.entries[index])
-                    SettingsEffect.Reconnect()
+                    SettingsEffect.None
                 }
                 ChoiceSetting.AUDIO_BUFFER -> {
                     AirPlayPersistence.saveMediaBufferMillis(app, MediaAudioBuffer.presets[index])
@@ -249,11 +240,6 @@ internal class SettingsViewModel(
                 }
                 ToggleSetting.AUTO_START -> {
                     AirPlayPersistence.saveAutoStartOnBoot(app, checked)
-                    SettingsEffect.None
-                }
-                ToggleSetting.ADAPTIVE_SIZE -> {
-                    AirPlayPersistence.saveAdaptiveBrowserSize(app, checked)
-                    WebSession.setAdaptiveBrowserSize(checked)
                     SettingsEffect.None
                 }
                 ToggleSetting.HEVC -> {
@@ -375,7 +361,7 @@ internal class SettingsViewModel(
     fun saveMargins(margins: CarPlaySafeMargins): SettingsEffect {
         AirPlayPersistence.saveSafeMargins(app, margins)
         reload()
-        return SettingsEffect.Reconnect()
+        return SettingsEffect.None
     }
 
     fun resetBranding(includeName: Boolean) {

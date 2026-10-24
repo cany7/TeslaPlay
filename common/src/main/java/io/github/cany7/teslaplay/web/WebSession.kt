@@ -134,11 +134,10 @@ internal object WebSession {
     var videoSource: WebVideoSource? = null
         private set
 
-    @Volatile
-    var adaptiveBrowserSize = true
-        private set
-
+    @Volatile private var availableBrowserViewport: Pair<Int, Int>? = null
     @Volatile private var browserViewport: Pair<Int, Int>? = null
+    val reportedBrowserViewport: Pair<Int, Int>?
+        get() = if (hasViewer) availableBrowserViewport else null
     val currentBrowserViewport: Pair<Int, Int>?
         get() = browserViewport
 
@@ -320,11 +319,17 @@ internal object WebSession {
         }
     }
 
+    /** Read imported preferences before a new connection; saving alone never changes a live canvas. */
+    fun refreshConnectionPreferences(context: Context) {
+        val saved = TeslaDisplayPreferences.load(context)
+        browserViewport = if (saved.enabled) saved.profile().output() else availableBrowserViewport
+    }
+
     @Synchronized
     fun start(context: Context) {
         if (server?.ready == true) return
         if (server != null) stop()
-        adaptiveBrowserSize = AirPlayPersistence.loadAdaptiveBrowserSize(context)
+        refreshConnectionPreferences(context)
         configureAudio(context)
         code = (100000 + SecureRandom().nextInt(900000)).toString()
         val port = WebListenSettings.httpPort(context)
@@ -708,23 +713,33 @@ internal object WebSession {
         configureAudio(context)
     }
 
-    fun setAdaptiveBrowserSize(enabled: Boolean) {
-        adaptiveBrowserSize = enabled
-        val size = if (enabled) browserViewport else null
-        browserViewportListener?.invoke(size?.first, size?.second)
-    }
-
     fun setBrowserViewportListener(listener: ((Int?, Int?) -> Unit)?) {
         browserViewportListener = listener
-        val size = if (adaptiveBrowserSize) browserViewport else null
-        listener?.invoke(size?.first, size?.second)
+        val size = browserViewport
+        if (!projectionSessions.hasSession()) listener?.invoke(size?.first, size?.second)
     }
 
     @Volatile var appliedBrowserViewport: Pair<Int, Int>? = null
         private set
     fun browserDisplayApplied(width: Int, height: Int) { appliedBrowserViewport = width to height }
     fun stageSavedDisplay(config: TeslaDisplayPreferences.Config) {
-        browserViewport = if (config.enabled) config.profile().output() else browserViewport
+        browserViewport = if (config.enabled) config.profile().output() else availableBrowserViewport
+    }
+    @Volatile private var virtualButtonHandler: ((String) -> Unit)? = null
+    fun setVirtualButtonHandler(handler: ((String) -> Unit)?) { virtualButtonHandler = handler }
+    fun virtualButton(action: String) {
+        if (projectionSessions.snapshot()?.descriptor?.id != "carplay") return
+        mainHandler.post { touch.cancel(); virtualButtonHandler?.invoke(action) }
+    }
+
+    fun applySavedDisplay(context: Context) {
+        val config = TeslaDisplayPreferences.load(context)
+        if (!config.enabled) return
+        val size = config.profile().output()
+        browserViewport = size
+        // Only CarPlay negotiates these dimensions; other inputs keep their own display configuration.
+        if (projectionSessions.snapshot()?.descriptor?.id?.let { it != "carplay" } == true) return
+        browserViewportListener?.invoke(size.first, size.second)
     }
 
     fun reportBrowserViewport(width: Int, height: Int): Boolean {
@@ -735,9 +750,14 @@ internal object WebSession {
             return false
         val ratio = width.toDouble() / height
         if (ratio !in MIN_VIEWPORT_ASPECT..MAX_VIEWPORT_ASPECT) return false
-        val size = width to height
+        if (width % 2 != 0 || height % 2 != 0) return false
+        availableBrowserViewport = width to height
+        val saved = experienceContext?.let { TeslaDisplayPreferences.load(it) }
+        val size = if (saved?.enabled == true) saved.profile().output() else width to height
         browserViewport = size
-        if (adaptiveBrowserSize) browserViewportListener?.invoke(width, height)
+        // Resizing a Tesla browser must never interrupt a running projection.
+        if (!projectionSessions.hasSession())
+            browserViewportListener?.invoke(size.first, size.second)
         return true
     }
 
@@ -816,6 +836,7 @@ internal object WebSession {
         server = null
         runCatching { old?.stop() }.exceptionOrNull()?.let { error = it.message }
         browserViewport = null
+        availableBrowserViewport = null
         frame = null
         videoActive = false
         code = ""

@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 package io.github.cany7.teslaplay.settings
 
+import android.content.SharedPreferences
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import io.github.cany7.teslaplay.web.TeslaDisplayPreferences
+import io.github.cany7.teslaplay.shared.R as UiR
 import androidx.compose.ui.unit.dp
 import io.github.cany7.teslaplay.BrowserOfflinePolicy
 import io.github.cany7.teslaplay.host.R
@@ -15,6 +19,8 @@ import java.util.Date
 
 @Composable
 internal fun BrowserSettingsScreen(state: SettingsState, actions: SettingsActions) {
+    BrowserVirtualButtonsSetting()
+    SettingsDescription(UiR.string.tesla_virtual_buttons_description)
     var manage by remember { mutableStateOf(false) }
     SettingsDescription(R.string.settings_browser_description)
     SettingsRow(
@@ -130,4 +136,22 @@ private fun BrowserDevicesDialog(
         ) {
             actions.removeBrowser(null)
         }
+}
+
+@Composable
+private fun BrowserVirtualButtonsSetting() {
+    val context = LocalContext.current
+    val prefs = remember(context) { TeslaDisplayPreferences.preferences(context) }
+    var show by remember { mutableStateOf(TeslaDisplayPreferences.buttons(context)) }
+    DisposableEffect(prefs) {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == TeslaDisplayPreferences.BUTTONS_KEY) show = TeslaDisplayPreferences.buttons(context)
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+    Row(Modifier.fillMaxWidth().settingsSearchTarget("settings:virtual-buttons")) {
+        Text(settingsString(UiR.string.tesla_virtual_buttons), Modifier.weight(1f))
+        Switch(checked = show, onCheckedChange = { TeslaDisplayPreferences.saveButtons(context, it) })
+    }
 }

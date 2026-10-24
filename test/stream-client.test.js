@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import { resourceStrings } from '../scripts/resource-strings.mjs';
 const messages = resourceStrings('values-zh-rCN');
 
-const source = ['text.js', 'desktop-input.js', 'browser-audio.js', 'browser-location.js', 'browser-media-session.js', 'diagnostics.js', 'app.js']
+const source = ['text.js', 'desktop-input.js', 'browser-audio.js', 'browser-location.js', 'browser-media-session.js', 'diagnostics.js', 'display-menu.js', 'app.js']
   .map(name => readFileSync(new URL(`../common/src/main/assets/web/${name}`, import.meta.url), 'utf8')
     .replace(/^import .*;$/gm, '').replaceAll('export function', 'function')).join('\n');
 function fixture({ storedCanvas = null, storedMode = null, processorAvailable = true, storedIgnoreZoom = null, storageDisabled = false, canvasAvailable = true, supportsWebp = false,
@@ -24,7 +24,7 @@ function fixture({ storedCanvas = null, storedMode = null, processorAvailable = 
   let nextTimer = 0, nextFrame = 0, clockNow = 1000;
   const element = id => {
     const classes = new Set();
-    if (!elements.has(id)) elements.set(id, { hidden: id === 'video-canvas', complete: true, value: '123456', handlers: {}, naturalWidth: 1280, naturalHeight: 720,
+    if (!elements.has(id)) elements.set(id, { hidden: ['video-canvas', 'display-menu', 'menu-handle', 'virtual-buttons'].includes(id), complete: true, value: '123456', handlers: {}, naturalWidth: 1280, naturalHeight: 720,
       checked: false, videoWidth: 1280, videoHeight: 720, readyState: 2, currentTime: 0,
       style: { removeProperty(name) { delete this[name]; } },
       parentElement: { getBoundingClientRect: () => mainRect },
@@ -162,12 +162,16 @@ test('the overlay forwards a complete drag independently of the native video ele
   assert.deepEqual(ws.sent.filter(m => m.type === 'touch').map(m => m.contacts[0].down), [true, true, false]);
 });
 
-test('the optional top bar is hidden only after connecting and restored on disconnect', async () => {
+test('projection hides the menu until its handle opens it and disconnect hides the handle', async () => {
   const f = fixture();
   f.element('hide-toolbar').checked = true;
   const ws = await f.connect();
-  assert.equal(f.element('topbar').hidden, true);
+  assert.equal(f.element('display-menu').hidden, true);
+  assert.equal(f.element('menu-handle').hidden, false);
+  f.element('menu-handle').handlers.click({ stopPropagation() {} });
+  assert.equal(f.element('display-menu').hidden, false);
   f.element('disconnect').handlers.click();
+  assert.equal(f.element('menu-handle').hidden, true);
   assert.equal(f.element('topbar').hidden, false);
 });
 
@@ -178,7 +182,7 @@ test('normal launch leaves fullscreen and the top bar unchanged', async () => {
   assert.equal(f.element('topbar').hidden, false);
 });
 
-test('immersive launch requests fullscreen in the submit gesture and hides the bar after connecting', async () => {
+test('immersive launch requests fullscreen in the submit gesture and keeps the menu collapsed', async () => {
   const f = fixture(); f.element('fullscreen-on-start').checked = true;
   const connecting = f.connect();
   assert.deepEqual(f.fullscreenCalls, ['request']);
@@ -186,7 +190,8 @@ test('immersive launch requests fullscreen in the submit gesture and hides the b
   assert.equal(f.element('topbar').hidden, false);
   await connecting;
   assert.equal(f.document.fullscreenElement, f.document.documentElement);
-  assert.equal(f.element('topbar').hidden, true);
+  assert.equal(f.element('display-menu').hidden, true);
+  assert.equal(f.element('menu-handle').hidden, false);
   await f.document.exitFullscreen();
   assert.equal(f.element('topbar').hidden, false);
   assert.equal(f.element('display').hidden, false, 'Leaving fullscreen keeps the stream connected');
@@ -201,12 +206,13 @@ test('disconnect exits launch-owned fullscreen and restores the pairing interfac
   assert.equal(f.element('pairing').hidden, false);
 });
 
-test('unavailable or rejected fullscreen falls back to hiding the bar without preventing launch', async () => {
+test('unavailable or rejected fullscreen keeps the menu collapsed without preventing launch', async () => {
   for (const fullscreen of ['unsupported', 'denied']) {
     const f = fixture({ fullscreen }); f.element('fullscreen-on-start').checked = true;
     await f.connect();
     assert.equal(f.document.fullscreenElement, null);
-    assert.equal(f.element('topbar').hidden, true);
+    assert.equal(f.element('display-menu').hidden, true);
+  assert.equal(f.element('menu-handle').hidden, false);
     assert.equal(f.element('display').hidden, false);
     f.element('disconnect').handlers.click();
     assert.equal(f.element('topbar').hidden, false);

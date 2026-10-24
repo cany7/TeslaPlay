@@ -1,5 +1,36 @@
 <resources>
+    <string name="tesla_menu">Display settings</string>
+    <string name="tesla_close">Close</string>
     <string name="tesla_window_title">Tesla display size</string>
     <string name="tesla_window_help">Save separate sizes for the right and large windows. This does not resize Tesla’s own windows. Without a saved size, the browser area is used when connecting.</string>
+    <string name="tesla_window_mode">Window type</string>
+    <string name="tesla_right_window">Right window</string>
+    <string name="tesla_large_window">Large window</string>
+    <string name="tesla_preset">Output resolution</string>
+    <string name="tesla_fit">Use window size</string>
+    <string name="tesla_scale">Resolution scale</string>
+    <string name="tesla_width">Window width (px)</string>
+    <string name="tesla_height">Window height (px)</string>
+    <string name="tesla_use_viewport">Use current browser area</string>
+    <string name="tesla_save">Save for next connection</string>
+    <string name="tesla_apply">Apply and reconnect</string>
+    <string name="tesla_cancel">Cancel</string>
     <string name="tesla_virtual_buttons">Show virtual buttons</string>
+    <string name="tesla_pending">Saved · applies next connection</string>
+    <string name="tesla_saved">Saved</string>
+    <string name="tesla_current">Current output</string>
+    <string name="tesla_invalid_size">Use even dimensions from 320–8192, aspect ratio 1:2–4:1</string>
+    <string name="tesla_home">Home</string>
+    <string name="tesla_back">Back</string>
+    <string name="tesla_previous">Previous</string>
+    <string name="tesla_play">Play / pause</string>
+    <string name="tesla_next">Next</string>
+    <string name="tesla_revert">Revert</string>
+    <string name="tesla_virtual_buttons_description">Shows Home, Back, Siri and playback buttons on screen.</string>
+    <string name="tesla_auto">Use browser area when connecting</string>
+    <string name="tesla_unsaved">Unsaved changes</string>
+    <string name="tesla_disconnected">Not connected</string>
+    <string name="tesla_in_use">Saved · in use</string>
+    <string name="tesla_custom_size">Custom size and scale</string>
+    <string name="tesla_size_help">Resolution scale changes the output pixels, not the size of icons and text.</string>
 </resources>

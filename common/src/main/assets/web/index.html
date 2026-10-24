@@ -10,14 +10,31 @@
 <script type="module" src="/app.js"></script>
 </head>
 <body>
-<header id="topbar"><a class="brand" href="/">WheelPlay</a><div id="status" role="status" aria-live="polite">{{ui_waiting_for_connection}}</div><nav><button id="fullscreen" type="button">{{web_full_screen}}</button><button id="disconnect" type="button" hidden>{{web_disconnect}}</button></nav></header>
+<button id="menu-handle" type="button" aria-controls="display-menu" aria-expanded="false" hidden>{{tesla_menu}}</button>
+<div id="display-menu" role="dialog" aria-modal="true" aria-label="{{tesla_menu}}" hidden>
+<button id="menu-close" type="button">{{tesla_close}}</button>
+<header id="topbar"><a class="brand" href="/">TeslaPlay</a><div id="status" role="status" aria-live="polite">{{ui_waiting_for_connection}}</div><nav><button id="fullscreen" type="button">{{web_full_screen}}</button><button id="disconnect" type="button" hidden>{{web_disconnect}}</button></nav></header>
+<section class="window-settings">
+<h2>{{tesla_window_title}}</h2><p>{{tesla_window_help}}</p>
+<label>{{tesla_window_mode}} <select id="window-mode"><option value="right">{{tesla_right_window}}</option><option value="large">{{tesla_large_window}}</option></select></label>
+<label>{{tesla_preset}} <select id="window-preset"><option value="fit">{{tesla_fit}}</option><option value="720p">720p</option><option value="1080p">1080p</option><option value="2k">2K (2560 × 1440)</option></select></label>
+<label>{{tesla_scale}} <select id="window-scale"><option value="0.5">1/2</option><option value="0.75">3/4</option><option value="1">1×</option></select></label>
+<label>{{tesla_width}} <input id="window-width" type="number" min="320" max="8192" step="2" value="1280"></label>
+<label>{{tesla_height}} <input id="window-height" type="number" min="320" max="8192" step="2" value="720"></label>
+<button id="window-use-viewport" type="button">{{tesla_use_viewport}}</button>
+<p id="window-preview" aria-live="polite"></p><p id="window-state" role="status"></p>
+<div class="window-actions"><button id="window-save" type="button">{{tesla_save}}</button><button id="window-apply" type="button">{{tesla_apply}}</button><button id="window-cancel" type="button">{{tesla_revert}}</button></div>
+<label class="launch-option"><input id="show-virtual-buttons" type="checkbox"><span>{{tesla_virtual_buttons}}</span></label>
 <details id="projection-diagnostics" class="secure-setup"><summary>{{web_diag_title}}</summary><dl></dl></details>
+</section></div>
+<div id="virtual-buttons" hidden><button data-action="home">{{tesla_home}}</button><button data-action="back">{{tesla_back}}</button><button data-action="siri">Siri</button><button data-action="previous">{{tesla_previous}}</button><button data-action="play">{{tesla_play}}</button><button data-action="next">{{tesla_next}}</button></div>
+
 <main>
 <section id="pairing" aria-labelledby="title">
 <div class="eyebrow">{{web_local_network_head_unit_display}}</div>
 <h1 id="title">{{web_connect_your_carplay_display}}</h1>
 <p id="pair-instructions">{{web_for_the_first_connection_tap_scan_qr_code_to}}<br class="wide">{{web_then_scan_the_qr_code_below_and_allow_the}}</p>
-<label class="launch-option" for="hide-toolbar"><input id="hide-toolbar" type="checkbox"><span><strong>{{web_hide_top_bar_after_connecting}}</strong><small>{{web_let_carplay_fill_the_page_refresh_to_return_to}}</small></span></label>
+<label class="launch-option" for="hide-toolbar" hidden><input id="hide-toolbar" type="checkbox"><span><strong>{{web_hide_top_bar_after_connecting}}</strong><small>{{web_let_carplay_fill_the_page_refresh_to_return_to}}</small></span></label>
 <label class="launch-option" for="fullscreen-on-start"><input id="fullscreen-on-start" type="checkbox"><span><strong>{{web_hide_top_bar_enter_full_screen_on_start}}</strong><small>{{web_enter_full_screen_when_starting_and_hide_the_top}}</small></span></label>
 <fieldset class="renderer-options"><legend>{{web_video_renderer_title}}</legend><div class="renderer-cards">
 <label id="renderer-native-card" class="renderer-card" for="renderer-native"><input id="renderer-native" type="radio" name="video-renderer" value="native" checked><span><strong>{{web_video_renderer_native}}</strong><small>{{web_video_renderer_native_description}}</small></span></label>

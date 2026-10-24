@@ -1,5 +1,36 @@
 <resources>
+    <string name="tesla_menu">显示设置</string>
+    <string name="tesla_close">关闭</string>
     <string name="tesla_window_title">Tesla 画面尺寸</string>
     <string name="tesla_window_help">右侧窗口和大窗口分别保存，不改变 Tesla 自身窗口。未设置时，连接时采用浏览器区域。</string>
+    <string name="tesla_window_mode">窗口类型</string>
+    <string name="tesla_right_window">右侧窗口</string>
+    <string name="tesla_large_window">大窗口</string>
+    <string name="tesla_preset">输出分辨率</string>
+    <string name="tesla_fit">按窗口尺寸</string>
+    <string name="tesla_scale">分辨率比例</string>
+    <string name="tesla_width">窗口宽度（像素）</string>
+    <string name="tesla_height">窗口高度（像素）</string>
+    <string name="tesla_use_viewport">使用当前浏览器可用区域</string>
+    <string name="tesla_save">保存，下次连接生效</string>
+    <string name="tesla_apply">应用并重新连接</string>
+    <string name="tesla_cancel">取消</string>
     <string name="tesla_virtual_buttons">显示虚拟按钮</string>
+    <string name="tesla_pending">已保存，下次连接生效</string>
+    <string name="tesla_saved">已保存</string>
+    <string name="tesla_current">当前输出</string>
+    <string name="tesla_invalid_size">宽高须为 320–8192 的偶数，宽高比 1:2–4:1</string>
+    <string name="tesla_home">主页</string>
+    <string name="tesla_back">返回</string>
+    <string name="tesla_previous">上一曲</string>
+    <string name="tesla_play">播放 / 暂停</string>
+    <string name="tesla_next">下一曲</string>
+    <string name="tesla_revert">还原</string>
+    <string name="tesla_virtual_buttons_description">在画面上显示主页、返回、Siri 和播放键。</string>
+    <string name="tesla_auto">连接时采用浏览器区域</string>
+    <string name="tesla_unsaved">未保存的修改</string>
+    <string name="tesla_disconnected">未连接</string>
+    <string name="tesla_in_use">已保存，正在使用</string>
+    <string name="tesla_custom_size">自定义尺寸与比例</string>
+    <string name="tesla_size_help">分辨率比例调整输出像素，不改变图标与文字大小。</string>
 </resources>

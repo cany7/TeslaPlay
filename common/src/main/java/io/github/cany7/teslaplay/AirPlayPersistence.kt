@@ -34,7 +34,6 @@ object AirPlayPersistence {
     private const val KEY_LOCKDOWN_HOST_CERT = "lockdown_host_cert"
     private const val KEY_LOCKDOWN_ROOT_PRIVATE = "lockdown_root_private"
     private const val KEY_LOCKDOWN_ROOT_CERT = "lockdown_root_cert"
-    private const val KEY_DISPLAY_SCALE_TENTHS = "display_scale_tenths"
     private const val KEY_UI_SCALE_PERCENT = "ui_scale_percent"
     private const val KEY_HEVC_ENABLED = "hevc_enabled"
     private const val KEY_HEVC_SOFTWARE_DECODER = "hevc_software_decoder"
@@ -66,7 +65,6 @@ object AirPlayPersistence {
     private const val KEY_RIGHT_HAND_DRIVE = "right_hand_drive"
     private const val KEY_HIDE_TOP_BAR = "hide_top_bar"
     private const val KEY_HIDE_BOTTOM_BAR = "hide_bottom_bar"
-    private const val KEY_ADAPTIVE_BROWSER_SIZE = "adaptive_browser_size"
     private const val KEY_BROWSER_AUDIO_PLAYBACK = "browser_audio_playback"
     private const val KEY_BROWSER_MICROPHONE = "browser_microphone"
     private const val KEY_MICROPHONE_SOURCE = "microphone_source"
@@ -153,19 +151,6 @@ object AirPlayPersistence {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_SAFE_MARGINS, null))
     fun saveSafeMargins(context: Context, value: CarPlaySafeMargins) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_SAFE_MARGINS, value.encode()).apply()
-    }
-
-    fun loadDisplayScaleTenths(context: Context): Int {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        return CarPlayDisplayScale.sanitize(
-            prefs.getInt(KEY_DISPLAY_SCALE_TENTHS, CarPlayDisplayScale.DEFAULT_TENTHS),
-        )
-    }
-
-    fun saveDisplayScaleTenths(context: Context, tenths: Int) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putInt(KEY_DISPLAY_SCALE_TENTHS, CarPlayDisplayScale.sanitize(tenths))
-            .apply()
     }
 
     fun loadHevcEnabled(context: Context): Boolean =
@@ -565,16 +550,6 @@ object AirPlayPersistence {
     fun saveHideBottomBar(context: Context, hide: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putBoolean(KEY_HIDE_BOTTOM_BAR, hide)
-            .apply()
-    }
-
-    fun loadAdaptiveBrowserSize(context: Context): Boolean =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_ADAPTIVE_BROWSER_SIZE, true)
-
-    fun saveAdaptiveBrowserSize(context: Context, enabled: Boolean) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putBoolean(KEY_ADAPTIVE_BROWSER_SIZE, enabled)
             .apply()
     }
 

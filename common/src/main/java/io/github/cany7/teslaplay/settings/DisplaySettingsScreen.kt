@@ -24,6 +24,7 @@ import io.github.cany7.teslaplay.web.StreamTechnology
 
 @Composable
 internal fun DisplaySettingsScreen(state: SettingsState, actions: SettingsActions) {
+    TeslaDisplaySettings()
     var editMargins by rememberSaveable { mutableStateOf(false) }
     SettingsChoice(
         state,
@@ -59,24 +60,6 @@ internal fun DisplaySettingsScreen(state: SettingsState, actions: SettingsAction
         editMargins = true
     }
     SettingsDescription(R.string.settings_safe_area_description)
-    SettingsToggle(
-        state,
-        actions,
-        ToggleSetting.ADAPTIVE_SIZE,
-        R.string.settings_adaptive_size,
-        R.string.settings_adaptive_size_description,
-    )
-    SettingsChoice(
-        state,
-        actions,
-        ChoiceSetting.RESOLUTION,
-        R.string.settings_resolution,
-        listOf(
-            settingsString(R.string.settings_original_resolution),
-            settingsString(R.string.settings_resolution_lower),
-            settingsString(R.string.settings_resolution_lowest),
-        ),
-    )
     SettingsChoice(
         state,
         actions,
@@ -84,6 +67,7 @@ internal fun DisplaySettingsScreen(state: SettingsState, actions: SettingsAction
         R.string.settings_fps,
         listOf(settingsString(R.string.settings_fps_30), settingsString(R.string.settings_fps_60)),
     )
+    SettingsDescription(R.string.settings_fps_description)
     SettingsChoice(
         state,
         actions,
@@ -124,6 +108,8 @@ internal fun DisplaySettingsScreen(state: SettingsState, actions: SettingsAction
         R.string.settings_right_hand,
         R.string.settings_right_hand_description,
     )
+    SettingsDescription(R.string.settings_saved_apply_help)
+    SettingsButton(R.string.settings_apply_saved, state.runtime.audioOutputActive != null) { actions.command(SettingsCommand.APPLY_SAVED_SETTINGS) }
     if (editMargins)
         SafeAreaDialog(margins ?: CarPlaySafeMargins(), { editMargins = false }) {
             actions.margins(it)

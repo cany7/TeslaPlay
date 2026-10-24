@@ -676,6 +676,7 @@ export function createRtcReceiver(createRenderer, {
 }
 
 import { createDiagnostics } from './diagnostics.js';
+import { createDisplayMenu } from './display-menu.js';
 import { createBrowserAudio } from './browser-audio.js';
 import { createBrowserLocation } from './browser-location.js';
 import { createBrowserMediaSession } from './browser-media-session.js';
@@ -955,6 +956,13 @@ if (typeof document !== 'undefined') {
   audioMode.hidden = true;
   audioDetails.append(audioMode, nowPlaying);
   $('topbar').append(audioDetails);
+  function currentViewport() {
+    const rect = display.getBoundingClientRect();
+    const zoom = ignoreZoomOption.checked ? window.visualViewport?.scale || 1 : 1;
+    const scale = (window.devicePixelRatio || 1) * zoom;
+    return browserViewportSize(rect.width * scale, rect.height * scale);
+  }
+  const displayMenu = createDisplayMenu({ send, release, viewport: currentViewport });
   const browserMedia = createBrowserMediaSession({ send, onState: state => {
     nowPlaying.textContent = state?.available ? [state.title || state.appName, state.artist].filter(Boolean).join(' · ') : '';
   } });
@@ -1080,6 +1088,7 @@ if (typeof document !== 'undefined') {
     if (launchPresentation.ownsFullscreen && document.fullscreenElement) exitLaunchFullscreen();
   }
   function disconnect(refreshQr = true) {
+    displayMenu.connected(false);
     stopQr();
     authGeneration++;
     restoreLaunchPresentation();
@@ -1155,7 +1164,8 @@ if (typeof document !== 'undefined') {
       $('phone-connect').disabled = false;
       $('phone-connect-message').textContent = t("web_keep_teslaplay_in_the_foreground_on_android_tap_connect");
       $('pairing').hidden = true; $('display').hidden = false; $('disconnect').hidden = false;
-      $('topbar').hidden = $('hide-toolbar').checked || Boolean(launchPresentation?.immersive);
+      $('topbar').hidden = false;
+      displayMenu.connected(true);
       lastViewportSignature = '';
       scheduleViewportReport();
       $('status').textContent = t("web_connected_waiting_for_video");
@@ -1195,6 +1205,7 @@ if (typeof document !== 'undefined') {
           const message = data.message; disconnect(); $('message').textContent = message; return;
         }
         if (data.type === 'status') {
+          displayMenu.receive(data);
           diagnostics.receive(data.deviceDiagnostics);
           performanceStats.source = data.performance?.source ?? null;
           performanceStats.transport = data.performance?.transport ?? null;
@@ -1248,6 +1259,7 @@ if (typeof document !== 'undefined') {
       if (socket !== ws) return;
       if (outbox) { outbox.close(); outbox = null; }
       cancelMove();
+      displayMenu.connected(false);
       socket = null; pointers.clear(); desktop.release(false); pointerInput = false; keyboardInput = false;
       clearInterval(heartbeat); presentation.close(); cleanupRtc(); cleanupImage();
       browserMedia.close(); browserAudio.close(); $('audio-message').hidden = true;
