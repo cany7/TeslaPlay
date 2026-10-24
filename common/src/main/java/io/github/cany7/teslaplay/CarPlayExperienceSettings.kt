@@ -27,6 +27,7 @@ enum class CarPlayMicrophoneSource(@param:androidx.annotation.StringRes val labe
 enum class CarPlayAudioOutput(@param:androidx.annotation.StringRes val labelRes: Int) {
     ANDROID(UiR.string.ui_android_device),
     BROWSER(UiR.string.ui_head_unit_browser),
+    IPHONE_BLUETOOTH(UiR.string.ui_iphone_bluetooth_output),
 }
 
 enum class BrowserOfflinePolicy(

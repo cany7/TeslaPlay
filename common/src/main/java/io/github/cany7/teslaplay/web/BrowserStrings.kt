@@ -9,6 +9,7 @@ import org.json.JSONObject
 internal object BrowserStrings {
     private val resources =
         mapOf(
+            "web_car_bluetooth_audio" to UiR.string.web_car_bluetooth_audio,
             "web_location_title" to UiR.string.web_location_title,
             "web_location_help" to UiR.string.web_location_help,
             "web_location_https" to UiR.string.web_location_https,

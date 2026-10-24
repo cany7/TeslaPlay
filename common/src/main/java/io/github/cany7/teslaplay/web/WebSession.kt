@@ -229,14 +229,23 @@ internal object WebSession {
         }
     }
 
+    @Volatile var microphoneSourceInUse = CarPlayMicrophoneSource.ANDROID
+        private set
+
     private fun configureAudio(context: Context) {
         val source = AirPlayPersistence.loadMicrophoneSource(context)
-        val capabilities = projectionSessions.snapshot()?.capabilities
+        microphoneSourceInUse = source
+        val session = projectionSessions.snapshot()
+        val capabilities = session?.capabilities
         audio.configure(
-            capabilities?.browserAudio == true && AirPlayPersistence.loadBrowserAudioPlayback(context),
+            capabilities?.browserAudio == true &&
+                ((session as? io.github.cany7.teslaplay.projection.CarPlaySourceSession)?.audioOutput
+                    ?.let { it == io.github.cany7.teslaplay.CarPlayAudioOutput.BROWSER }
+                    ?: AirPlayPersistence.loadBrowserAudioPlayback(context)),
             capabilities?.browserMicrophone == true && source == CarPlayMicrophoneSource.BROWSER,
             AirPlayPersistence.loadMediaBufferMillis(context),
             capabilities?.microphone == true && source != CarPlayMicrophoneSource.DISABLED,
+            externalAudio = (session as? io.github.cany7.teslaplay.projection.CarPlaySourceSession)?.carBluetoothAudio == true,
         )
     }
 

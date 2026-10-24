@@ -1,0 +1,4 @@
+<resources>
+    <string name="ui_iphone_bluetooth_output">iPhone Bluetooth output</string>
+    <string name="web_car_bluetooth_audio">Audio: managed by iPhone (Bluetooth mode)</string>
+</resources>

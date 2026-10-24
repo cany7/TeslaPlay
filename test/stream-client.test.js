@@ -32,10 +32,11 @@ function fixture({ storedCanvas = null, storedMode = null, processorAvailable = 
       play: async () => {},
       requestVideoFrameCallback(fn) { const frame = ++nextFrame; videoCallbacks.set(frame, fn); return frame; },
       cancelVideoFrameCallback(frame) { videoCallbacks.delete(frame); },
-      classList: { toggle(name, enabled) { if (enabled) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) },
+      classList: { add: name => classes.add(name), remove: name => classes.delete(name), toggle(name, enabled) { if (enabled) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name) },
       remove() { this.hidden = true; this.removed = true; },
       insertBefore(child) { child.removed = false; },
-      removeAttribute() {}, setAttribute() {}, setPointerCapture() {}, focus() {},
+      append(...children) { this.children = [...(this.children || []), ...children]; }, replaceChildren(...children) { this.children = children; },
+      removeAttribute() {}, setAttribute() {}, setPointerCapture() {}, focus() {}, blur() {}, matches() { return false; }, contains() { return false; }, querySelectorAll() { return []; },
       getBoundingClientRect() {
         if (id !== 'display' || !classes.has('ignore-browser-zoom')) return mainRect;
         const scale = Number(this.style.transform.match(/scale\((.*)\)/)[1]);
@@ -58,8 +59,8 @@ function fixture({ storedCanvas = null, storedMode = null, processorAvailable = 
     async setLocalDescription() {}
     close() { this.closed = true; }
   }
-  const document = { createElement(tag) { assert.equal(tag, 'video'); const video = element('video'); createdVideos.push(video); return video; }, getElementById: element, fullscreenElement: null, documentElement: {},
-    addEventListener(name, fn) { documentEvents[name] = fn; },
+  const document = { createElement(tag) { const created = element(tag === 'video' ? 'video' : `created-${tag}-${elements.size}`); if (tag === 'video') createdVideos.push(created); return created; }, getElementById: element, body: element('body'), fullscreenElement: null, documentElement: {},
+    addEventListener(name, fn) { const previous = documentEvents[name]; documentEvents[name] = previous ? event => { previous(event); fn(event); } : fn; },
     exitFullscreen() {
       fullscreenCalls.push('exit'); this.fullscreenElement = null;
       documentEvents.fullscreenchange(); return Promise.resolve();
@@ -916,7 +917,10 @@ test('the paired socket publishes phone state to Media Session and clears it bef
   assert.match(ws.url, /nowPlaying=1/);
   const state = { type: 'now-playing', sessionId: 'phone', revision: 1, connectionGeneration: 3, trackRevision: 4,
     connected: true, available: true, title: 'Song', artist: 'Artist', status: 'playing', durationMs: 60000, positionMs: 1000, speed: 1 };
+  ws.onmessage({ data: JSON.stringify({ type: 'audio-route', externalAudio: true, playback: false, microphone: false }) });
   ws.onmessage({ data: JSON.stringify(state) });
+  assert.equal(session.metadata, null, 'External Bluetooth audio must not claim browser Media Session');
+  ws.onmessage({ data: JSON.stringify({ type: 'audio-route', externalAudio: false, playback: false, microphone: false }) });
   assert.equal(session.metadata.title, 'Song'); assert.equal(session.playbackState, 'playing');
   assert.equal(positions.at(-1).position, 1);
   const pause = handlers.get('pause'); pause();

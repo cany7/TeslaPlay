@@ -26,6 +26,27 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun bluetoothAudioIsDeferredAndKeepsPreviousRoutesAndOtherSources() {
+        AirPlayPersistence.saveBrowserAudioPlayback(app, true)
+        AirPlayPersistence.saveMicrophoneSource(app, CarPlayMicrophoneSource.BROWSER)
+        val model = SettingsViewModel(app, SavedStateHandle())
+        assertEquals(SettingsEffect.None, model.choose(ChoiceSetting.AUDIO_OUTPUT, CarPlayAudioOutput.IPHONE_BLUETOOTH.ordinal))
+        assertTrue(AirPlayPersistence.loadCarBluetoothAudio(app))
+        assertTrue(AirPlayPersistence.loadBrowserAudioPlayback(app))
+        assertEquals(CarPlayMicrophoneSource.BROWSER, AirPlayPersistence.loadMicrophoneSource(app))
+        val active = io.github.cany7.teslaplay.projection.CarPlaySourceSession({ null }, CarPlayAudioOutput.IPHONE_BLUETOOTH)
+        assertFalse(active.capabilities.audioPlayback)
+        assertFalse(active.capabilities.microphone)
+        assertEquals(SettingsEffect.None, model.choose(ChoiceSetting.AUDIO_OUTPUT, CarPlayAudioOutput.BROWSER.ordinal))
+        assertTrue(active.carBluetoothAudio) // A saved preference does not mutate a live session.
+        val restored = io.github.cany7.teslaplay.projection.CarPlaySourceSession({ null })
+        assertTrue(restored.capabilities.audioPlayback)
+        assertTrue(restored.capabilities.microphone)
+        assertTrue(AirPlayPersistence.loadBrowserAudioPlayback(app))
+        assertEquals(CarPlayMicrophoneSource.BROWSER, AirPlayPersistence.loadMicrophoneSource(app))
+    }
+
+    @Test
     fun restoredNavigationContainsScrollPositionsButNoCredentials() {
         val handle = SavedStateHandle()
         val model = SettingsViewModel(app, handle)
@@ -59,9 +80,11 @@ class SettingsViewModelTest {
         val model = SettingsViewModel(app, SavedStateHandle())
         assertTrue(
             model.choose(ChoiceSetting.MICROPHONE, CarPlayMicrophoneSource.DISABLED.ordinal)
-                is SettingsEffect.Reconnect
+                == SettingsEffect.None
         )
-        model.choose(ChoiceSetting.AUDIO_BUFFER, 2)
+        val activeMic = WebSession.microphoneSourceInUse
+        assertEquals(SettingsEffect.None, model.choose(ChoiceSetting.AUDIO_BUFFER, 2))
+        assertEquals(activeMic, WebSession.microphoneSourceInUse)
         assertEquals(SettingsEffect.None, model.choose(ChoiceSetting.AUDIO_OUTPUT, 1))
         assertEquals(CarPlayMicrophoneSource.DISABLED, AirPlayPersistence.loadMicrophoneSource(app))
         assertEquals(

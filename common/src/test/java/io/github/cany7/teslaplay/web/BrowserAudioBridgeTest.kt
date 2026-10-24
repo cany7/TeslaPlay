@@ -19,6 +19,29 @@ class BrowserAudioBridgeTest {
     private val mic = MicrophoneConfig("telephony", 16_000, 1, 97, 20,
         InetAddress.getLoopbackAddress(), 12345, ByteArray(32))
 
+    @Test fun externalBluetoothRejectsReadinessAndRestoresTheConfiguredBrowserRoute() {
+        val bridge = BrowserAudioBridge()
+        val owner = Any(); val messages = mutableListOf<String>()
+        val route = bridge.createRoute()
+        bridge.attach(owner, true, { _, _ -> }, messages::add)
+        bridge.configure(true, true, externalAudio = true)
+        val message = org.json.JSONObject(messages.last())
+        assertTrue(message.getBoolean("externalAudio"))
+        assertFalse(message.getBoolean("playback"))
+        assertFalse(message.getBoolean("microphone"))
+        bridge.ready(owner, true, true)
+        assertFalse(bridge.playbackReady)
+        assertFalse(bridge.microphoneReady)
+        assertFalse(route.microphoneEnabled)
+        assertFalse(route.output(1, format, byteArrayOf(1, 2, 3, 4), 0, 4))
+        bridge.configure(true, true, externalAudio = false)
+        bridge.ready(owner, true, true)
+        assertTrue(bridge.playbackReady)
+        assertTrue(bridge.microphoneReady)
+        assertTrue(route.microphoneEnabled)
+        route.close(); bridge.detach(owner)
+    }
+
     @Test fun disabledRouteNeverStartsRemoteOrLocalMicrophoneInMediaSink() {
         var requested = false
         val remote = object : io.github.cany7.teslaplay.media.RemoteAudioRoute {

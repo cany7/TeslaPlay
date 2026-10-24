@@ -1,10 +1,16 @@
 package io.github.cany7.teslaplay.projection
 
 import io.github.cany7.teslaplay.CarPlayBackgroundSession
+import io.github.cany7.teslaplay.CarPlayAudioOutput
 import java.util.concurrent.CompletableFuture
 
 /** The only projection adapter that knows about the legacy CarPlay controller. */
-internal class CarPlaySourceSession(private val status: () -> String?) : ProjectionSession {
+internal class CarPlaySourceSession(
+    private val status: () -> String?,
+    /** Negotiated once; saved changes take effect only in the replacement session. */
+    val audioOutput: CarPlayAudioOutput = CarPlayAudioOutput.ANDROID,
+) : ProjectionSession {
+    val carBluetoothAudio get() = audioOutput == CarPlayAudioOutput.IPHONE_BLUETOOTH
     @Volatile private var controller: io.github.cany7.teslaplay.orchestration.CarPlayController? = null
     @Volatile private var sink: io.github.cany7.teslaplay.media.AndroidMediaSink? = null
     private val closed = CompletableFuture<Unit>()
@@ -19,7 +25,7 @@ internal class CarPlaySourceSession(private val status: () -> String?) : Project
     override val statusText get() = status()
     override val descriptor = SourceDescriptor("carplay", "CarPlay")
     override val capabilities = ProjectionCapabilities(setOf(VideoIngressKind.ENCODED), 2,
-        nightMode = true, audioPlayback = true, microphone = true)
+        nightMode = true, audioPlayback = !carBluetoothAudio, microphone = !carBluetoothAudio)
     override val inputReady get() = controller?.touchReady == true
     override val media get() = controller
     override val mediaOutput get() = sink

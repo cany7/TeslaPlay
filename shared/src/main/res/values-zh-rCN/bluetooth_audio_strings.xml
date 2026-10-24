@@ -1,0 +1,4 @@
+<resources>
+    <string name="ui_iphone_bluetooth_output">iPhone 蓝牙输出</string>
+    <string name="web_car_bluetooth_audio">音频：由 iPhone 管理（蓝牙模式）</string>
+</resources>

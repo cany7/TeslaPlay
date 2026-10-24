@@ -1,6 +1,6 @@
 // Media Session is optional: missing/partial implementations must not interrupt video or audio.
 export function createBrowserMediaSession({
-  send,
+  send, onState = () => {},
   session = globalThis.navigator?.mediaSession,
   Metadata = globalThis.MediaMetadata,
   baseUrl = globalThis.location?.href,
@@ -9,6 +9,7 @@ export function createBrowserMediaSession({
 } = {}) {
   const actions = ['play', 'pause', 'stop', 'previoustrack', 'nexttrack'];
   const seekActions = ['seekto', 'seekbackward', 'seekforward'];
+  let enabled = true;
   let opened = false, state = null, revision = -1, epoch = 0, controls = null, metadataKey = null;
   let request = 0, pending = null, queuedSeek = null, seekTimer = null, stateAt = 0, seekTarget = null;
   const safely = operation => { try { operation(); } catch (_) { /* Optional browser capability. */ } };
@@ -35,7 +36,7 @@ export function createBrowserMediaSession({
 
   function flushSeek() {
     seekTimer = null;
-    if (queuedSeek === null || !opened || !state?.available || !seekable()) return;
+    if (queuedSeek === null || !enabled || !opened || !state?.available || !seekable()) return;
     if (pending && now() - pending.at < 3000) {
       seekTimer = schedule(flushSeek, 150); return;
     }
@@ -57,7 +58,7 @@ export function createBrowserMediaSession({
     cancel(seekTimer); seekTimer = null; queuedSeek = null; seekTarget = null;
     const expectedEpoch = ++epoch;
     for (const action of seekActions) safely(() => session.setActionHandler(action, seekable() ? (details = {}) => {
-      if (!opened || !state?.available || epoch !== expectedEpoch || !seekable()) return;
+      if (!enabled || !opened || !state?.available || epoch !== expectedEpoch || !seekable()) return;
       let target;
       if (action === 'seekto') {
         if (!Number.isFinite(details.seekTime)) return;
@@ -77,7 +78,7 @@ export function createBrowserMediaSession({
       seekTimer = schedule(flushSeek, 150);
     } : null));
     for (const action of actions) safely(() => session.setActionHandler(action, () => {
-      if (!opened || !state?.available || epoch !== expectedEpoch || pending && now() - pending.at < 3000) return;
+      if (!enabled || !opened || !state?.available || epoch !== expectedEpoch || pending && now() - pending.at < 3000) return;
       const id = ++request;
       pending = { id, at: now() };
       const accepted = send({ type: 'media-command', requestId: id, sessionId: state.sessionId,
@@ -89,7 +90,7 @@ export function createBrowserMediaSession({
 
   function render() {
     if (!session) return;
-    if (!state.connected || !state.available) { clear(); return; }
+    if (!enabled || !state.connected || !state.available) { clear(); return; }
     let artwork = [];
     if (state.artworkUrl) safely(() => {
       const url = new URL(state.artworkUrl, baseUrl);
@@ -117,8 +118,13 @@ export function createBrowserMediaSession({
   }
 
   return {
-    open() { clear(); opened = true; state = null; revision = -1; },
-    close() { opened = false; state = null; revision = -1; clear(); },
+    setEnabled(value) {
+      enabled = value === true;
+      if (!enabled) clear();
+      else if (opened && state) render();
+    },
+    open() { clear(); opened = true; state = null; revision = -1; onState(null); },
+    close() { opened = false; state = null; revision = -1; clear(); onState(null); },
     receive(data) {
       if (data.type === 'media-command-result') {
         if (seekTarget?.id === data.requestId && data.result !== 'sent') seekTarget = null;
@@ -129,7 +135,7 @@ export function createBrowserMediaSession({
       if (!opened || typeof data.sessionId !== 'string' || !Number.isSafeInteger(data.revision) || data.revision <= revision ||
           !Number.isSafeInteger(data.connectionGeneration) || !Number.isSafeInteger(data.trackRevision)) return true;
       revision = data.revision;
-      state = data; stateAt = now();
+      state = data; stateAt = now(); onState(data);
       // A transport receipt can precede the phone's position update. Retain the target for
       // successive relative actions, but never use it as the displayed playback position.
       const target = targetPosition();

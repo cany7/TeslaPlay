@@ -18,7 +18,7 @@ function fixture({ status = () => ok({ state: 'pending' }), stored = null, resum
   const element = id => {
     if (!elements.has(id)) elements.set(id, { hidden: false, value: '123456', handlers: {}, checked: false,
       set src(value) { this.source = value; if (this.onload) this.onload(); },
-      classList: { toggle() {} }, removeAttribute(name) { if (name === "href") delete this.href; }, setAttribute() {}, addEventListener(name, fn) { const previous = this.handlers[name]; this.handlers[name] = previous ? event => { previous(event); fn(event); } : fn; } });
+      classList: { toggle() {}, add() {}, remove() {} }, append() {}, focus() {}, blur() {}, matches() { return false; }, contains() { return false; }, querySelectorAll() { return []; }, removeAttribute(name) { if (name === "href") delete this.href; }, setAttribute() {}, addEventListener(name, fn) { const previous = this.handlers[name]; this.handlers[name] = previous ? event => { previous(event); fn(event); } : fn; } });
     return elements.get(id);
   };
   class Socket {
@@ -26,7 +26,7 @@ function fixture({ status = () => ok({ state: 'pending' }), stored = null, resum
     constructor(url) { this.url = url; sockets.push(this); }
     close() {}
   }
-  const context = { document: { getElementById: element, addEventListener() {} },
+  const context = { document: { getElementById: element, createElement: tag => element(`created-${tag}-${elements.size}`), body: element('body'), addEventListener() {} },
     window: { location: { search, pathname: '/', hash: '' }, history: { replaceState() {} },
       addEventListener(name, fn) { windowEvents[name] = fn; },
       localStorage: {
@@ -36,7 +36,7 @@ function fixture({ status = () => ok({ state: 'pending' }), stored = null, resum
       },
     }, location: { host: 'server:8080', href }, URL, Date, WebSocket: Socket,
     setTimeout(fn, delay) { const id = ++nextTimer; timers.set(id, { fn, delay }); return id; },
-    clearTimeout(id) { timers.delete(id); }, clearInterval() {},
+    clearTimeout(id) { timers.delete(id); }, setInterval() { return 0; }, clearInterval() {},
     fetch: async (url, options) => {
       requests.push({ url, options });
       if (url === '/tls.json') return ok(tls);

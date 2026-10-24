@@ -354,14 +354,18 @@ class TeslaPlayActivity : AppCompatActivity() {
 
     private fun refreshSettingsRuntime() {
         val session = CarPlayBackgroundSession.snapshot()
+        val projection = projectionSessions.snapshot() as? io.github.cany7.teslaplay.projection.CarPlaySourceSession
+        val bluetoothAudio = projection?.carBluetoothAudio
         val audioStatus = when {
+            bluetoothAudio == true -> getString(R.string.settings_audio_bluetooth_active)
             session == null -> getString(UiR.string.ui_current_no_iphone_connected)
-            AirPlayPersistence.loadBrowserAudioPlayback(this) && WebSession.audio.playbackReady && session.sink.isRemoteMediaAvailable() -> getString(UiR.string.ui_current_output_head_unit_browser)
-            AirPlayPersistence.loadBrowserAudioPlayback(this) -> getString(UiR.string.ui_current_output_android_browser_not_ready_or_offline)
+            projection?.audioOutput == CarPlayAudioOutput.BROWSER && WebSession.audio.playbackReady && session.sink.isRemoteMediaAvailable() -> getString(UiR.string.ui_current_output_head_unit_browser)
+            projection?.audioOutput == CarPlayAudioOutput.BROWSER -> getString(UiR.string.ui_current_output_android_browser_not_ready_or_offline)
             else -> getString(UiR.string.ui_current_output_android)
         }
-        val source = AirPlayPersistence.loadMicrophoneSource(this)
+        val source = WebSession.microphoneSourceInUse
         val microphoneStatus = when {
+            bluetoothAudio == true -> getString(R.string.settings_microphone_bluetooth_active)
             source == CarPlayMicrophoneSource.DISABLED -> getString(UiR.string.ui_current_microphone_disabled)
             session == null -> getString(UiR.string.ui_current_no_iphone_connected)
             source == CarPlayMicrophoneSource.BROWSER && WebSession.audio.microphoneReady -> getString(UiR.string.ui_input_browser_captured_on_demand)
@@ -382,6 +386,7 @@ class TeslaPlayActivity : AppCompatActivity() {
             awaitingVpnConsent = awaitingTeslaVpnConsent, exporting = exportInProgress,
             rootGranted = RootAccess.granted, rootChecking = RootAccess.checking, rootStatus = RootAccess.status.resolve(this),
             teslaStatus = teslaMessage, audioStatus = audioStatus, microphoneStatus = microphoneStatus,
+            audioOutputActive = projection?.audioOutput,
             version = version(), fingerprint = WebSession.tls?.fingerprint
         ))
     }
@@ -422,6 +427,10 @@ class TeslaPlayActivity : AppCompatActivity() {
 
     private fun settingsCommand(command: SettingsCommand) {
         when (command) {
+            SettingsCommand.APPLY_SAVED_SETTINGS -> if (CarPlayBackgroundSession.hasSession())
+                applySettingsEffect(SettingsEffect.Reconnect())
+            SettingsCommand.APPLY_AUDIO_MODE -> if (CarPlayBackgroundSession.hasSession())
+                connect(AirPlayPersistence.loadWirelessEnabled(this))
             SettingsCommand.SELECT_PHONE -> choosePhone()
             SettingsCommand.HOTSPOT_SETTINGS -> openCarWifiSettings()
             SettingsCommand.REQUEST_ROOT -> configureWeb(getString(UiR.string.ui_root_access_granted)) { RootAccess.request()?.resolve(this).also { TeslaHttpCompatibility.retry() } }

@@ -39,6 +39,7 @@ internal class CarPlayMediaSessionBridge(
         private set
     private var epoch = 0L
     private var state = NowPlayingState()
+    private var systemAudioEnabled = true
     private var remote = false
     private var focused = false
     private var focusBlocked = false
@@ -59,7 +60,7 @@ internal class CarPlayMediaSessionBridge(
     private val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
         .setAudioAttributes(attributes).setWillPauseWhenDucked(true)
         .setOnAudioFocusChangeListener({ change ->
-            if (change < 0 && !remote && !closed) {
+            if (change < 0 && systemAudioEnabled && !remote && !closed) {
                 focusBlocked = true
                 output?.setLocalMediaAllowed(false)
                 abandonFocus()
@@ -75,10 +76,11 @@ internal class CarPlayMediaSessionBridge(
     }
 
     private fun installCallbacks() {
+        if (!systemAudioEnabled) { session.setCallback(null); return }
         val generation = commandGeneration
         session.setCallback(object : MediaSession.Callback() {
             private fun dispatch(operation: MediaCommand) {
-                if (!closed && generation == commandGeneration) command(operation)
+                if (!closed && systemAudioEnabled && generation == commandGeneration) command(operation)
             }
             override fun onPlay() = dispatch(MediaCommand.PLAY)
             override fun onPause() = dispatch(MediaCommand.PAUSE)
@@ -86,13 +88,14 @@ internal class CarPlayMediaSessionBridge(
             override fun onSkipToNext() = dispatch(MediaCommand.NEXT)
             override fun onSkipToPrevious() = dispatch(MediaCommand.PREVIOUS)
             override fun onSeekTo(pos: Long) {
-                if (!closed && generation == commandGeneration && state.canSeek) source?.let { browserSeek(it, state.connectionGeneration, state.trackRevision, pos) }
+                if (!closed && systemAudioEnabled && generation == commandGeneration && state.canSeek) source?.let { browserSeek(it, state.connectionGeneration, state.trackRevision, pos) }
             }
         }, main)
     }
 
-    fun bind(next: MediaControlSource?, nextOutput: MediaOutputControl?) {
-        if (closed || source === next && output === nextOutput) return
+    fun bind(next: MediaControlSource?, nextOutput: MediaOutputControl?, systemAudioEnabled: Boolean = true) {
+        if (closed || source === next && output === nextOutput && this.systemAudioEnabled == systemAudioEnabled) return
+        this.systemAudioEnabled = systemAudioEnabled
         val generation = ++epoch
         ++commandGeneration
         installCallbacks()
@@ -108,12 +111,12 @@ internal class CarPlayMediaSessionBridge(
         nextOutput?.setLocalMediaRequestedListener {
             if (localRequestQueued.compareAndSet(false, true)) main.post {
                 localRequestQueued.set(false)
-                if (!closed && epoch == generation && !remote && !pausePending && state.connected &&
+                if (!closed && systemAudioEnabled && epoch == generation && !remote && !pausePending && state.connected &&
                     state.status !in listOf(PhonePlaybackStatus.PAUSED, PhonePlaybackStatus.STOPPED)) requestFocus()
             }
         }
         routeSubscription = nextOutput?.subscribeMediaRoute { isRemote -> main.post {
-            if (!closed && epoch == generation && remote != isRemote) {
+            if (!closed && systemAudioEnabled && epoch == generation && remote != isRemote) {
                 remote = isRemote
                 if (remote) { output?.setLocalMediaAllowed(false); abandonFocus(); session.setPlaybackToRemote(fixedVolume) }
                 else { session.setPlaybackToLocal(attributes); if (state.playing && !pausePending) requestFocus() }
@@ -138,7 +141,7 @@ internal class CarPlayMediaSessionBridge(
     }
 
     fun browserSeek(expected: CarPlayMediaSource, generation: Long, track: Long, positionMs: Long): CompletableFuture<MediaCommandResult> {
-        if (closed || source !== expected || state.connectionGeneration != generation || state.trackRevision != track)
+        if (closed || !systemAudioEnabled || source !== expected || state.connectionGeneration != generation || state.trackRevision != track)
             return CompletableFuture.completedFuture(MediaCommandResult.UNAVAILABLE)
         val current = expected.mediaSnapshot()
         if (!current.available || current.connectionGeneration != generation || current.trackRevision != track)
@@ -150,7 +153,7 @@ internal class CarPlayMediaSessionBridge(
 
     private fun dispatchCommand(command: MediaCommand): CompletableFuture<MediaCommandResult> {
         fun unavailable() = CompletableFuture.completedFuture(MediaCommandResult.UNAVAILABLE)
-        if (closed || !state.available) return unavailable()
+        if (closed || !systemAudioEnabled || !state.available) return unavailable()
         val current = source?.mediaSnapshot() ?: return unavailable()
         if (!current.available || current.connectionGeneration != state.connectionGeneration) return unavailable()
         if (command == MediaCommand.PLAY || command == MediaCommand.TOGGLE && !state.playing) {
@@ -197,7 +200,7 @@ internal class CarPlayMediaSessionBridge(
             }
         }
         render() // Foreground mediaPlayback type precedes a focus request on Android 15+.
-        if (!remote) {
+        if (systemAudioEnabled && !remote) {
             if (state.playing) { if (wasPaused) focusBlocked = false; if (!pausePending) requestFocus() }
             else if (state.status != PhonePlaybackStatus.UNKNOWN) {
                 pausePending = false; ++pauseRequest
@@ -207,6 +210,7 @@ internal class CarPlayMediaSessionBridge(
     }
 
     private fun requestFocus(): Boolean {
+        if (!systemAudioEnabled) { output?.setLocalMediaAllowed(false); return false }
         if (remote || output?.isRemoteMediaAvailable() == true) {
             output?.setLocalMediaAllowed(false)
             return true
@@ -223,8 +227,8 @@ internal class CarPlayMediaSessionBridge(
     }
 
     private fun render() {
-        session.isActive = state.available
-        if (!state.available) {
+        session.isActive = systemAudioEnabled && state.available
+        if (!systemAudioEnabled || !state.available) {
             if (publishedMetadata != null) session.setMetadata(null)
             publishedMetadata = null
             session.setPlaybackState(PlaybackState.Builder().setState(PlaybackState.STATE_NONE, 0, 0f).build())

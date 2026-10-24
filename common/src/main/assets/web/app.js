@@ -947,14 +947,24 @@ if (typeof document !== 'undefined') {
     keyboardEnabled: () => keyboardInput, interactive: () => live,
     point: (event, surface, clamp) => mapPoint(event.clientX, event.clientY, surface.getBoundingClientRect(), width, height, clamp) });
   let desktopRevision = presentation.current.revision;
-  const browserMedia = createBrowserMediaSession({ send });
+  const audioDetails = document.createElement('div');
+  audioDetails.className = 'audio-details';
+  const audioMode = document.createElement('div'), nowPlaying = document.createElement('div');
+  audioMode.hidden = true;
+  audioDetails.append(audioMode, nowPlaying);
+  $('topbar').append(audioDetails);
+  const browserMedia = createBrowserMediaSession({ send, onState: state => {
+    nowPlaying.textContent = state?.available ? [state.title || state.appName, state.artist].filter(Boolean).join(' · ') : '';
+  } });
   const browserAudio = createBrowserAudio({
     send,
     sendBinary: packet => {
       if (socket?.readyState !== WebSocket.OPEN || socket.bufferedAmount > 8192) return false;
       try { socket.send(packet); return true; } catch (_) { return false; }
     },
-    onState: ({ error }) => {
+    onState: ({ error, externalAudio }) => {
+      audioMode.hidden = !externalAudio;
+      audioMode.textContent = externalAudio ? t('web_car_bluetooth_audio') : '';
       $('audio-message').textContent = error;
       $('audio-message').hidden = !error || !paired;
     },
@@ -1102,7 +1112,7 @@ if (typeof document !== 'undefined') {
         cancelMove(); pointers.clear(); presentation.close(); ws.close();
       } });
       paired = true; attempts = 0; lastStatus = Date.now();
-      browserMedia.open(); browserAudio.attach();
+      browserMedia.open(); browserMedia.setEnabled(false); browserAudio.attach();
       browserLocation.attach();
       cleanupRtc();
       presentation.open();
@@ -1160,6 +1170,7 @@ if (typeof document !== 'undefined') {
       if (socket !== ws || ws.readyState !== WebSocket.OPEN) return;
       if (typeof event.data === 'string') {
         const data = JSON.parse(event.data);
+        if (data.type === 'audio-route') browserMedia.setEnabled(data.externalAudio !== true);
         if (browserMedia.receive(data)) return;
         if (browserAudio.control(data)) return;
         if (data.type === 'rtc-offer' || data.type === 'rtc-stop') {

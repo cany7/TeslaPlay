@@ -73,7 +73,8 @@ class TeslaPlaySessionService : Service() {
                 main.post {
                     if (!destroyed) {
                         val current = projectionSessions.snapshot()
-                        media.bind(current?.media, current?.mediaOutput)
+                        media.bind(current?.media, current?.mediaOutput,
+                            systemAudioEnabled = (current as? io.github.cany7.teslaplay.projection.CarPlaySourceSession)?.carBluetoothAudio != true)
                         updateNotification()
                     }
                 }
@@ -239,7 +240,7 @@ class TeslaPlaySessionService : Service() {
         val notification = builder.build()
         if (Build.VERSION.SDK_INT >= 29) {
             var types = ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-            if (currentState.available && currentState.playing ||
+            if (currentSession != null && currentState.available && currentState.playing ||
                 projectionSessions.snapshot()?.let { it.capabilities.audioPlayback && !it.capabilities.browserAudio } == true)
                 types = types or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
             if (

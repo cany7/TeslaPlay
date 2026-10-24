@@ -22,6 +22,7 @@ internal class BrowserAudioBridge {
     private var requestedPlayback = false
     private var requestedCapture = false
     private var microphoneEnabled = true
+    private var externalAudio = false
     private var mediaBufferMillis = MediaAudioBuffer.DEFAULT_MILLIS
     private var playback = false
     private var capture = false
@@ -39,14 +40,15 @@ internal class BrowserAudioBridge {
     }
 
     fun configure(playback: Boolean, capture: Boolean, mediaBufferMillis: Int = MediaAudioBuffer.DEFAULT_MILLIS,
-        microphoneEnabled: Boolean = true) {
+        microphoneEnabled: Boolean = true, externalAudio: Boolean = false) {
         val change = synchronized(lock) {
-            val enabledChanged = this.microphoneEnabled != microphoneEnabled
-            this.microphoneEnabled = microphoneEnabled
-            requestedPlayback = playback; requestedCapture = capture && microphoneEnabled
+            val enabledChanged = this.microphoneEnabled != (microphoneEnabled && !externalAudio)
+            this.externalAudio = externalAudio
+            this.microphoneEnabled = microphoneEnabled && !externalAudio
+            requestedPlayback = playback && !externalAudio; requestedCapture = capture && this.microphoneEnabled
             this.mediaBufferMillis = MediaAudioBuffer.sanitize(mediaBufferMillis)
             sendRoute()
-            this.playback = this.playback && playback
+            this.playback = this.playback && requestedPlayback
             val nextCapture = this.capture && requestedCapture
             val changed = this.capture != nextCapture || enabledChanged
             this.capture = nextCapture
@@ -80,6 +82,7 @@ internal class BrowserAudioBridge {
     private fun sendRoute() {
         if (owner != null) control?.invoke(JSONObject().put("type", "audio-route")
             .put("playback", requestedPlayback).put("microphone", requestedCapture && secureOwner)
+            .put("externalAudio", externalAudio)
             .put("mediaBufferMillis", mediaBufferMillis).toString())
     }
 

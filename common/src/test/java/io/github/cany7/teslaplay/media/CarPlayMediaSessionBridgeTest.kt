@@ -17,6 +17,53 @@ import java.util.concurrent.CompletableFuture
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [29], shadows = [RecordingMediaSession::class, LinkedMediaController::class, LinkedTransportControls::class])
 class CarPlayMediaSessionBridgeTest {
+    @Test fun externalBluetoothKeepsMetadataButNeverRequestsFocusOrRegistersControls() {
+        val context: Context = RuntimeEnvironment.getApplication()
+        val source = Source(); val output = Output()
+        val audio = shadowOf(context.getSystemService(android.media.AudioManager::class.java))
+        var latest = NowPlayingState()
+        val bridge = CarPlayMediaSessionBridge(context) { state, session, _ ->
+            latest = state
+            assertNull(session)
+        }
+        try {
+            bridge.bind(source, output, systemAudioEnabled = false)
+            source.update(playing()); idle()
+            assertEquals("Song", latest.title)
+            assertFalse(bridge.session.isActive)
+            assertNull(audio.lastAudioFocusRequest)
+            assertFalse(output.allowed)
+            output.request!!(); idle()
+            assertNull(audio.lastAudioFocusRequest)
+            bridge.command(MediaCommand.PLAY)
+            assertTrue(source.sent.isEmpty())
+            assertEquals(MediaCommandResult.UNAVAILABLE,
+                bridge.browserCommand(source, latest.connectionGeneration, MediaCommand.NEXT).get())
+            val recorded = org.robolectric.shadow.api.Shadow.extract<RecordingMediaSession>(bridge.session)
+            assertNull(recorded.callback)
+            assertNull(recorded.recordedMetadata)
+        } finally { bridge.close() }
+    }
+
+    @Test fun switchingFromBluetoothRestoresNativeControlsAndRejectsOldCallbacks() {
+        val source = Source(); val output = Output()
+        val bridge = CarPlayMediaSessionBridge(RuntimeEnvironment.getApplication()) { _, _, _ -> }
+        try {
+            bridge.bind(source, output); source.update(playing()); idle()
+            val recorded = org.robolectric.shadow.api.Shadow.extract<RecordingMediaSession>(bridge.session)
+            val old = recorded.callback!!
+            bridge.bind(source, output, systemAudioEnabled = false); idle()
+            old.onPlay()
+            assertTrue(source.sent.isEmpty())
+            assertFalse(bridge.session.isActive)
+            assertFalse(output.allowed)
+            bridge.bind(source, output, systemAudioEnabled = true); idle()
+            assertTrue(bridge.session.isActive)
+            recorded.callback!!.onSkipToNext()
+            assertEquals(listOf(MediaCommand.NEXT), source.sent)
+        } finally { bridge.close() }
+    }
+
     @Test fun browserControlsShareNativePauseGatingAndRejectRetiredSources() {
         val source = Source(); val output = Output()
         val bridge = CarPlayMediaSessionBridge(RuntimeEnvironment.getApplication()) { _, _, _ -> }

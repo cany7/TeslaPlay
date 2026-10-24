@@ -470,7 +470,8 @@ class CarPlayHostActivity : ComponentActivity() {
         microphonePermissionResolved = microphoneAvailable
         if (reusedBackgroundSession) {
             updateDebugOverlays()
-        } else if (AirPlayPersistence.loadMicrophoneSource(this) == CarPlayMicrophoneSource.DISABLED ||
+        } else if (AirPlayPersistence.loadCarBluetoothAudio(this) ||
+            AirPlayPersistence.loadMicrophoneSource(this) == CarPlayMicrophoneSource.DISABLED ||
             microphonePermissionResolved || WebSession.audio.microphoneRequested) {
             microphonePermissionResolved = true
             requestStartupPrerequisites()
@@ -669,7 +670,8 @@ class CarPlayHostActivity : ComponentActivity() {
             val selectedMicrophone = AirPlayPersistence.loadMicrophoneSource(this)
             if (microphoneSource != selectedMicrophone) {
                 microphoneSource = selectedMicrophone
-                microphonePermissionResolved = selectedMicrophone == CarPlayMicrophoneSource.DISABLED ||
+                microphonePermissionResolved = AirPlayPersistence.loadCarBluetoothAudio(this) ||
+                    selectedMicrophone == CarPlayMicrophoneSource.DISABLED ||
                     checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED ||
                     WebSession.audio.microphoneRequested
                 if (!microphonePermissionResolved) microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
@@ -2633,7 +2635,10 @@ class CarPlayHostActivity : ComponentActivity() {
             main = display,
             rightHandDrive = rightHandDrive,
             hevc = hevcEnabled,
-            microphone = AirPlayPersistence.loadMicrophoneSource(this) != CarPlayMicrophoneSource.DISABLED,
+            // DiPlay 593ac236: let iPhone retain the car's A2DP/HFP path.
+            disableAudioOutput = sessionCarBluetoothAudio(),
+            microphone = !sessionCarBluetoothAudio() &&
+                AirPlayPersistence.loadMicrophoneSource(this) != CarPlayMicrophoneSource.DISABLED,
             microphoneOpus = io.github.cany7.teslaplay.media.OpusEncoderSupport.isAvailable(),
             manufacturer = normalizedManufacturer(),
             model = normalizedModel(),
@@ -2826,10 +2831,15 @@ class CarPlayHostActivity : ComponentActivity() {
         )
     }
 
+    private fun sessionCarBluetoothAudio(): Boolean =
+        (projectionSessions.snapshot() as? CarPlaySourceSession)?.carBluetoothAudio
+            ?: AirPlayPersistence.loadCarBluetoothAudio(this)
+
     private fun createMediaEngine(sink: AndroidMediaSink): CarPlayMediaEngine =
         CarPlayMediaEngine(
             sink = sink,
-            microphoneEnabled = AirPlayPersistence.loadMicrophoneSource(this) != CarPlayMicrophoneSource.DISABLED,
+            microphoneEnabled = !sessionCarBluetoothAudio() &&
+                AirPlayPersistence.loadMicrophoneSource(this) != CarPlayMicrophoneSource.DISABLED,
             audioCaptureDirectory = audioCaptureDirectory(),
         )
 
@@ -2975,8 +2985,9 @@ class CarPlayHostActivity : ComponentActivity() {
             setLocalizedConnectionStage(UiText(UiR.string.ui_authentication_resources_are_not_ready_import_files_or_a))
             return
         }
-        if (!CarPlayBackgroundSession.reserve(this, { WebSession.stageDetail(this) }) { completion ->
-                runOnUiThread { shutdown(false, "WheelPlay disconnect", completion); finish() }
+        if (!CarPlayBackgroundSession.reserve(this, { WebSession.stageDetail(this) },
+                AirPlayPersistence.loadAudioOutput(this)) { completion ->
+                runOnUiThread { shutdown(false, "TeslaPlay disconnect", completion); finish() }
             }) {
             showTeslaPlayHome("home")
             finish()
@@ -2998,7 +3009,7 @@ class CarPlayHostActivity : ComponentActivity() {
             "Starting CarPlay controller at ${size.width}x${size.height} -> ${airPlayConfig.main.widthPixels}x${airPlayConfig.main.heightPixels} " +
                 "(${CarPlayDisplayScale.label(displayScaleTenths)}) physical=${airPlayConfig.main.widthPhysicalMm}x" +
                 "${airPlayConfig.main.heightPhysicalMm}mm video=${if (airPlayConfig.hevc) "HEVC" else "H.264"} decoder=${if (airPlayConfig.hevc && hevcSoftwareDecoderEnabled) "software" else "hardware"} microphone=${airPlayConfig.microphone} " +
-                "androidLocation=${if (locationReportingEnabled) "enabled" else "disabled"} browserLocation=opt-in mfi=${mfiTargetLabel(config.mfiTarget)}",
+                "carBluetoothAudio=${airPlayConfig.disableAudioOutput} androidLocation=${if (locationReportingEnabled) "enabled" else "disabled"} browserLocation=opt-in mfi=${mfiTargetLabel(config.mfiTarget)}",
         )
         Log.i(
             TAG,
@@ -3588,9 +3599,10 @@ internal object CarPlayBackgroundSession {
     @Volatile var teardownClean = true
         private set
 
-    @Synchronized fun reserve(owner: Any, status: () -> String?, stop: (() -> Unit) -> Unit): Boolean {
+    @Synchronized fun reserve(owner: Any, status: () -> String?, audioOutput: CarPlayAudioOutput = CarPlayAudioOutput.ANDROID,
+        stop: (() -> Unit) -> Unit): Boolean {
         if (projection != null) return this.owner === owner
-        val adapter = CarPlaySourceSession(status)
+        val adapter = CarPlaySourceSession(status, audioOutput)
         if (!projectionSessions.adopt(adapter,
                 ProjectionResource.entries.toSet())) return false
         projection = adapter

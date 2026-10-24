@@ -87,6 +87,30 @@ object AirPlayPersistence {
     const val DEFAULT_SIMULATED_MANUFACTURER_NAME = "NIO"
     const val DEFAULT_MFI_I2C_PATH = "/dev/i2c-1"
 
+    // Independent of the Android/browser route so turning it off restores those preferences.
+    fun loadCarBluetoothAudio(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("car_bluetooth_audio", false)
+
+    fun saveCarBluetoothAudio(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean("car_bluetooth_audio", enabled).apply()
+    }
+
+    fun loadAudioOutput(context: Context): CarPlayAudioOutput = when {
+        loadCarBluetoothAudio(context) -> CarPlayAudioOutput.IPHONE_BLUETOOTH
+        loadBrowserAudioPlayback(context) -> CarPlayAudioOutput.BROWSER
+        else -> CarPlayAudioOutput.ANDROID
+    }
+
+    fun saveAudioOutput(context: Context, output: CarPlayAudioOutput) {
+        val editor = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean("car_bluetooth_audio", output == CarPlayAudioOutput.IPHONE_BLUETOOTH)
+        if (output != CarPlayAudioOutput.IPHONE_BLUETOOTH) {
+            editor.putBoolean(KEY_BROWSER_AUDIO_PLAYBACK, output == CarPlayAudioOutput.BROWSER)
+        }
+        editor.apply()
+    }
+
     fun loadBrowserAudioPlayback(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_BROWSER_AUDIO_PLAYBACK, false)
 

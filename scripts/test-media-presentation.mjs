@@ -65,6 +65,7 @@ function frame(epoch = media.videoEpoch, width = media.width, height = media.hei
   image.copy(packet, 40); viewer.send(packet);
 }
 wss.on('connection', ws => {
+  ws.send(JSON.stringify({ type: 'audio-route', externalAudio: false, playback: false, microphone: false }));
   viewer = ws; connections++; format = 'jpeg'; pendingImages.clear();
   let initial = true;
   ws.on('message', data => {

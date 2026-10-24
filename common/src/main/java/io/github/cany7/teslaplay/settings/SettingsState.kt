@@ -67,6 +67,8 @@ internal enum class TextSetting {
 }
 
 internal enum class SettingsCommand {
+    APPLY_AUDIO_MODE,
+    APPLY_SAVED_SETTINGS,
     SELECT_PHONE,
     HOTSPOT_SETTINGS,
     REQUEST_ROOT,
@@ -128,6 +130,7 @@ internal data class SettingsRuntime(
     val rootStatus: String = "",
     val teslaStatus: String = "",
     val audioStatus: String = "",
+    val audioOutputActive: io.github.cany7.teslaplay.CarPlayAudioOutput? = null,
     val microphoneStatus: String = "",
     val version: String = "",
     val fingerprint: String? = null,

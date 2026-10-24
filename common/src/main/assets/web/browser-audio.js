@@ -39,13 +39,13 @@ export function createBrowserAudio({
   createWorklet = context => new AudioWorkletNode(context, 'teslaplay-microphone', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] }),
   secure = () => window.isSecureContext && location.protocol === 'https:' && !!navigator.mediaDevices?.getUserMedia,
 } = {}) {
-  let context = null, playback = false, microphone = false, connected = false;
+  let context = null, playback = false, microphone = false, connected = false, externalAudio = false;
   let playbackGeneration = 0, microphoneGeneration = 0;
   let desiredPlayback = false, desiredMicrophone = false, gestureRetry = false;
   let mediaBufferMillis = 300;
   let stream = null, source = null, worklet = null, micId = null, micSequence = 0;
   const streams = new Map(), nodes = new Set();
-  function state(error = '') { onState({ playback, microphone, connected, error }); }
+  function state(error = '') { onState({ playback, microphone, connected, externalAudio, error }); }
   function readyState() { if (connected) send({ type: 'audio-ready', playback, microphone }); }
   async function ready() {
     if (!context) context = createContext();
@@ -65,28 +65,32 @@ export function createBrowserAudio({
     source?.disconnect(); stream?.getTracks().forEach(track => track.stop());
     worklet = source = stream = null;
   }
+  function suspendIfIdle() {
+    if (!desiredPlayback && !desiredMicrophone && context?.state === 'running')
+      context.suspend?.().catch(() => {});
+  }
   async function setPlayback(enabled) {
     const token = ++playbackGeneration;
     try {
       if (enabled) await ready();
-      if (playbackGeneration !== token) return;
+      if (playbackGeneration !== token) { suspendIfIdle(); return; }
       playback = enabled;
-      if (!enabled) stopPlayback();
+      if (!enabled) { stopPlayback(); suspendIfIdle(); }
       readyState(); state();
     } catch (error) { if (playbackGeneration === token) { playback = false; readyState(); state(error.message); } }
   }
   async function setMicrophone(enabled) {
     const token = ++microphoneGeneration;
     stopMicrophone(); microphone = false; readyState();
-    if (!enabled) { state(); return; }
+    if (!enabled) { suspendIfIdle(); state(); return; }
     try {
       if (!secure()) throw new Error(t("web_browser_microphones_require_trusted_https_open_the_https_address"));
       const audio = await ready();
       if (!audio.audioWorklet) throw new Error(t("web_this_browser_does_not_support_microphone_audio_processing_use"));
       await audio.audioWorklet.addModule('/audio-worklet.js');
-      if (microphoneGeneration !== token) return;
+      if (microphoneGeneration !== token) { suspendIfIdle(); return; }
       const captured = await getMicrophone();
-      if (microphoneGeneration !== token) { captured.getTracks().forEach(track => track.stop()); return; }
+      if (microphoneGeneration !== token) { captured.getTracks().forEach(track => track.stop()); suspendIfIdle(); return; }
       stream = captured; captured.getAudioTracks().forEach(track => { track.enabled = false; });
       worklet = createWorklet(audio); source = audio.createMediaStreamSource(captured);
       source.connect(worklet); worklet.connect(audio.destination);
@@ -101,7 +105,7 @@ export function createBrowserAudio({
       }; });
       microphone = true; readyState(); state();
     } catch (error) {
-      if (microphoneGeneration !== token) return;
+      if (microphoneGeneration !== token) { suspendIfIdle(); return; }
       stopMicrophone(); microphone = false; readyState();
       state(error.name === 'NotAllowedError' ? t("web_microphone_permission_denied_allow_this_site_to_use_the") : error.message);
     }
@@ -138,12 +142,15 @@ export function createBrowserAudio({
         mediaBufferMillis = nextBufferMillis;
         for (const id of new Set([...nodes].filter(node => node.media).map(node => node.stream))) stopPlayback(id);
       }
-      const nextPlayback = message.playback === true, nextMicrophone = message.microphone === true;
+      externalAudio = message.externalAudio === true;
+      state();
+      const nextPlayback = !externalAudio && message.playback === true,
+        nextMicrophone = !externalAudio && message.microphone === true;
       if (nextPlayback && !playback || nextMicrophone && !microphone) state(t("web_if_the_browser_blocks_autoplay_tap_the_display_to"));
       if (desiredPlayback !== nextPlayback) { desiredPlayback = nextPlayback; if (connected) setPlayback(nextPlayback); }
       if (desiredMicrophone !== nextMicrophone) { desiredMicrophone = nextMicrophone; if (connected) setMicrophone(nextMicrophone); }
       gestureRetry = false;
-      readyState();
+      suspendIfIdle(); readyState();
       return true;
     }
     if (message.type === 'audio-stop') { stopPlayback(message.stream); return true; }
@@ -164,7 +171,7 @@ export function createBrowserAudio({
   }
   function close() {
     playbackGeneration++; microphoneGeneration++; connected = false; microphone = playback = false;
-    desiredPlayback = desiredMicrophone = gestureRetry = false;
+    desiredPlayback = desiredMicrophone = gestureRetry = externalAudio = false;
     mediaBufferMillis = 300;
     stopMicrophone(); stopPlayback();
     const old = context; context = null; old?.close().catch(() => {}); state();
@@ -172,7 +179,7 @@ export function createBrowserAudio({
   return { receive, control, close,
     attach() { connected = true; state(); },
     unlock() {
-      if (!connected || gestureRetry) return;
+      if (!connected || externalAudio || gestureRetry) return;
       gestureRetry = true;
       if (desiredPlayback && !playback) setPlayback(true);
       if (desiredMicrophone && !microphone) setMicrophone(true);

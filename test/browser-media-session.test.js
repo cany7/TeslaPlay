@@ -193,3 +193,24 @@ test('relative seek targets expire, follow phone confirmation and clear on rejec
   assert.equal(f.sent.at(-1).positionMs, 50500, 'An unconfirmed target expires instead of accumulating forever');
   assert.equal(f.positions.at(-1).position, 40.5, 'Only phone reports affect displayed progress');
 });
+
+test('Bluetooth mode retains page metadata while releasing system controls and pending seeks', () => {
+  const snapshots = [];
+  const f = fixture({ onState: state => snapshots.push(state) });
+  f.bridge.receive({ ...f.state, canSeek: true });
+  const oldPlay = f.handlers.get('play');
+  f.handlers.get('seekto')({ seekTime: 20 });
+  f.bridge.setEnabled(false);
+  oldPlay(); f.tick();
+  assert.equal(f.sent.length, 0);
+  assert.equal(f.session.playbackState, 'none');
+  assert.equal(f.metadata.at(-1), null);
+  for (const handler of f.handlers.values()) assert.equal(handler, null);
+  f.bridge.receive({ ...f.state, revision: 2, title: 'Bluetooth song' });
+  assert.equal(snapshots.at(-1).title, 'Bluetooth song');
+  assert.equal(f.metadata.at(-1), null);
+  f.bridge.setEnabled(true);
+  assert.equal(f.metadata.at(-1).title, 'Bluetooth song');
+  assert.equal(f.session.playbackState, 'playing');
+  f.handlers.get('nexttrack')(); assert.equal(f.sent.at(-1).action, 'nexttrack');
+});

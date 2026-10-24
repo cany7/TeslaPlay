@@ -169,3 +169,38 @@ test('insecure page cannot request a browser microphone; secure capture stops an
   audio.control({ type: 'audio-route', playback: false, microphone: false });
   assert.equal(stopped, 1); assert.equal(controls.at(-1).microphone, false);
 });
+
+test('external Bluetooth audio suspends browser ownership, blocks gestures and restores saved routes', async () => {
+  const { audio, context, sources } = await playbackPlayer(300);
+  let resumes = 0, suspends = 0;
+  context.resume = async () => { resumes++; context.state = 'running'; };
+  context.suspend = async () => { suspends++; context.state = 'suspended'; };
+  audio.receive(packet([100, 200]));
+  audio.control({ type: 'audio-route', externalAudio: true, playback: true, microphone: true });
+  assert.equal(audio.playback, false);
+  assert.equal(audio.microphone, false);
+  assert.equal(sources[0].stopped, true);
+  assert.equal(context.state, 'suspended');
+  audio.unlock(); audio.receive(packet([100, 200], 2));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(resumes, 0); assert.equal(sources.length, 1); assert.ok(suspends >= 1);
+  audio.control({ type: 'audio-route', externalAudio: false, playback: true, microphone: false });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(audio.playback, true); assert.equal(context.state, 'running');
+  assert.equal(resumes, 1);
+  audio.close();
+});
+
+test('an in-flight browser unlock cannot reclaim audio after switching to Bluetooth', async () => {
+  let resume;
+  const context = {
+    state: 'suspended', resume: () => new Promise(resolve => { resume = () => { context.state = 'running'; resolve(); }; }),
+    async suspend() { this.state = 'suspended'; }, async close() {},
+  };
+  const audio = createBrowserAudio({ send() {}, createContext: () => context });
+  audio.attach(); audio.control({ type: 'audio-route', playback: true });
+  audio.control({ type: 'audio-route', externalAudio: true });
+  resume(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(audio.playback, false); assert.equal(context.state, 'suspended');
+  audio.close();
+});

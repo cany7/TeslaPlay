@@ -1,0 +1,7 @@
+<resources>
+    <string name="settings_car_bluetooth_audio_description">僅用於 CarPlay。由 iPhone 管理聲音和麥克風，請在 iPhone 上選擇藍牙音頻設備。其他音頻設置會保留。</string>
+    <string name="settings_audio_mode_pending">已儲存，下次連線生效。目前音訊路徑保持不變，點選下方按鈕套用並重新連線。</string>
+    <string name="settings_audio_apply_reconnect">套用並重新連線</string>
+    <string name="settings_audio_bluetooth_active">目前輸出：由 iPhone 管理（藍牙模式）</string>
+    <string name="settings_microphone_bluetooth_active">目前麥克風：由 iPhone 管理</string>
+</resources>

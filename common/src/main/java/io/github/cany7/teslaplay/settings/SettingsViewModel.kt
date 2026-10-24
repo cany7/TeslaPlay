@@ -89,7 +89,7 @@ internal class SettingsViewModel(
                             .indexOf(AirPlayPersistence.loadMediaBufferMillis(app))
                             .coerceAtLeast(0),
                     ChoiceSetting.AUDIO_OUTPUT to
-                        if (AirPlayPersistence.loadBrowserAudioPlayback(app)) 1 else 0,
+                        AirPlayPersistence.loadAudioOutput(app).ordinal,
                     ChoiceSetting.MICROPHONE to
                         AirPlayPersistence.loadMicrophoneSource(app).ordinal,
                     ChoiceSetting.LOCATION to
@@ -179,16 +179,16 @@ internal class SettingsViewModel(
                     SettingsEffect.Reconnect()
                 }
                 ChoiceSetting.AUDIO_BUFFER -> {
-                    WebSession.setMediaBufferMillis(app, MediaAudioBuffer.presets[index])
-                    SettingsEffect.Reconnect()
+                    AirPlayPersistence.saveMediaBufferMillis(app, MediaAudioBuffer.presets[index])
+                    SettingsEffect.None
                 }
                 ChoiceSetting.AUDIO_OUTPUT -> {
-                    WebSession.setBrowserAudioPlayback(app, index == 1)
+                    AirPlayPersistence.saveAudioOutput(app, CarPlayAudioOutput.entries[index])
                     SettingsEffect.None
                 }
                 ChoiceSetting.MICROPHONE -> {
-                    WebSession.setMicrophoneSource(app, CarPlayMicrophoneSource.entries[index])
-                    SettingsEffect.Reconnect()
+                    AirPlayPersistence.saveMicrophoneSource(app, CarPlayMicrophoneSource.entries[index])
+                    SettingsEffect.None
                 }
                 ChoiceSetting.LOCATION -> {
                     AirPlayPersistence.saveLocationReportingEnabled(app, index == 1)
