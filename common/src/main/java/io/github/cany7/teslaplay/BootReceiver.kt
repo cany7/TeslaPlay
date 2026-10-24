@@ -1,31 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 package io.github.cany7.teslaplay
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 
-/** Starts the CarPlay host after boot when the user has enabled the startup option. */
+/** Shares the idempotent, Activity-free service entry with the optional Bluetooth wake path. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
-        if (!AirPlayPersistence.loadAutoStartOnBoot(context)) return
-
-        val launch = Intent(context, TeslaPlayActivity::class.java).apply {
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP,
-            )
-        }
-        try {
-            context.startActivity(launch)
-        } catch (error: RuntimeException) {
-            Log.w(TAG, "Boot auto-start could not launch CarPlayHostActivity", error)
-        }
-    }
-
-    private companion object {
-        const val TAG = "xcertplay-boot"
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED && AirPlayPersistence.loadAutoStartOnBoot(context))
+            BackgroundServiceStart.start(context)
     }
 }

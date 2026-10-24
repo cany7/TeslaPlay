@@ -58,6 +58,7 @@ internal fun HelpSettingsScreen(state: SettingsState, actions: SettingsActions) 
             actions.command(SettingsCommand.SOURCE)
         }
     }
+    SettingsBackupSection(actions)
     if (fingerprint)
         AlertDialog(
             onDismissRequest = { fingerprint = false },

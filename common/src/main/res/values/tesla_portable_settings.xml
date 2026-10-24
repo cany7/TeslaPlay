@@ -1,0 +1,24 @@
+<resources>
+    <string name="tesla_backup_title">Back up &amp; restore settings</string>
+    <string name="tesla_backup_help">Exports display, audio and connection settings, without credentials or certificates. Imports apply next connection.</string>
+    <string name="tesla_backup_export">Export settings file</string>
+    <string name="tesla_backup_import">Import settings file</string>
+    <string name="tesla_backup_preview">Review %1$d changes; %2$d unknown fields skipped. Device bindings stay on this device.\n\n%3$s</string>
+    <string name="tesla_backup_saved">Settings imported. They apply at the next connection.</string>
+    <string name="tesla_backup_failed">Cannot read or apply this backup. Check its format, version and setting ranges. No import changes were kept.</string>
+    <string name="tesla_backup_export_failed">Could not export settings. Choose a writable destination.</string>
+    <string name="tesla_backup_exported">Settings exported</string>
+    <string name="tesla_backup_reconnect">Apply and reconnect</string>
+    <string name="tesla_search_title">Search settings</string>
+    <string name="tesla_search_empty">No matching settings</string>
+    <string name="tesla_search_clear">Clear</string>
+    <string name="tesla_search_https_condition">Enable HTTPS and choose PEM or PKCS#12 first.</string>
+    <string name="tesla_search_hotspot_condition">Set Connection network to Phone hotspot first.</string>
+    <string name="tesla_search_root_condition">Select root mode and grant root access first.</string>
+    <string name="tesla_phone_start_title">Start when the selected iPhone connects over Bluetooth</string>
+    <string name="tesla_phone_start_help">Starts in the background when the selected iPhone connects over Bluetooth (first CarPlay connection must be made in the app). If it doesn\'t, allow background activity and auto-start.</string>
+    <string name="tesla_phone_start_permission">Allow Nearby devices in App permissions, then select an iPhone.</string>
+    <string name="tesla_phone_start_select">Pair the iPhone with Android in Bluetooth settings, then select it below.</string>
+    <string name="tesla_phone_start_auth">Bundled CarPlay authentication resources are unavailable. Install a complete TeslaPlay build before reconnecting Bluetooth.</string>
+    <string name="tesla_phone_start_blocked">Android blocked background startup. Open TeslaPlay once; allow background activity and Xiaomi auto-start, then reconnect Bluetooth.</string>
+</resources>

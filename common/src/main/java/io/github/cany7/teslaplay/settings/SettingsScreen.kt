@@ -11,6 +11,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
@@ -63,6 +68,14 @@ internal fun SettingsScreen(
     initialScroll: (SettingsCategory?) -> Int,
     onScroll: (SettingsCategory?, Int) -> Unit,
 ) {
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var searchTarget by remember { mutableStateOf<SettingsSearchEntry?>(null) }
+    val context = LocalContext.current
+    val focus = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
+    val results = remember(searchQuery, context.resources.configuration) { SettingsSearchIndex.search(context, searchQuery) }
+    BackHandler(enabled = searchQuery.isNotEmpty()) { searchQuery = "" }
+    CompositionLocalProvider(LocalSettingsSearchTarget provides searchTarget?.tag) {
     Surface(Modifier.fillMaxSize()) {
         BoxWithConstraints {
             val gutter = maxOf(if (maxWidth < 360.dp) 16.dp else 24.dp, (maxWidth - 760.dp) / 2)
@@ -81,7 +94,7 @@ internal fun SettingsScreen(
                             title = { Text(settingsString(category.title)) },
                             navigationIcon = {
                                 IconButton(
-                                    onClick = { onCategory(null) },
+                                    onClick = { searchQuery = ""; searchTarget = null; onCategory(null) },
                                     modifier = Modifier.testTag("settings:back"),
                                 ) {
                                     Icon(
@@ -92,6 +105,14 @@ internal fun SettingsScreen(
                             },
                             windowInsets = WindowInsets(0, 0, 0, 0),
                         )
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it; searchTarget = null },
+                        label = { Text(settingsString(R.string.tesla_search_title)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = gutter).testTag("settings:search"),
+                        trailingIcon = { if (searchQuery.isNotEmpty()) TextButton(onClick = { searchQuery = "" }) { Text(settingsString(R.string.tesla_search_clear)) } },
+                    )
                     Column(
                         Modifier.weight(1f)
                             .fillMaxWidth()
@@ -100,7 +121,18 @@ internal fun SettingsScreen(
                             .padding(horizontal = gutter)
                             .padding(top = 24.dp, bottom = 32.dp)
                     ) {
-                        if (category == null) {
+                        if (searchQuery.isNotBlank()) {
+                            SettingsSearchResults(results) { entry ->
+                                focus.clearFocus()
+                                scope.launch {
+                                    scroll.scrollTo(0)
+                                    onScroll(entry.category, 0)
+                                    searchQuery = ""
+                                    searchTarget = entry
+                                    onCategory(entry.category)
+                                }
+                            }
+                        } else if (category == null) {
                             Text(
                                 settingsString(R.string.settings_title),
                                 style = MaterialTheme.typography.headlineSmall,
@@ -108,15 +140,10 @@ internal fun SettingsScreen(
                             SettingsDescription(R.string.settings_index_summary)
                             SettingsIndexScreen(state, actions, onCategory)
                         } else {
-                            SettingsDescription(
-                                when (category) {
-                                    SettingsCategory.DISPLAY -> R.string.settings_display_effect
-                                    SettingsCategory.AUDIO -> R.string.settings_audio_effect
-                                    SettingsCategory.CONNECTION,
-                                    SettingsCategory.VEHICLE -> R.string.settings_next_connection
-                                    else -> category.summary
-                                }
-                            )
+                            searchTarget?.takeIf { it.category == category && it.condition != 0 }?.let {
+                                Text(settingsString(it.title), style = MaterialTheme.typography.titleMedium)
+                                SettingsDescription(it.condition)
+                            }
                             when (category) {
                                 SettingsCategory.CONNECTION ->
                                     ConnectionSettingsScreen(state, actions)
@@ -135,6 +162,7 @@ internal fun SettingsScreen(
                 }
             }
         }
+    }
     }
 }
 

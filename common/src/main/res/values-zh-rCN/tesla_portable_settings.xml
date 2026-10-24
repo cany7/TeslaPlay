@@ -1,0 +1,24 @@
+<resources>
+    <string name="tesla_backup_title">备份与恢复设置</string>
+    <string name="tesla_backup_help">导出显示、音频和连接设置，不含认证、密码和证书。导入后下次连接生效。</string>
+    <string name="tesla_backup_export">导出设置文件</string>
+    <string name="tesla_backup_import">导入设置文件</string>
+    <string name="tesla_backup_preview">确认 %1$d 项变更；跳过 %2$d 个未知字段。设备绑定保留本机选择。\n\n%3$s</string>
+    <string name="tesla_backup_saved">设置已导入，下次连接生效。</string>
+    <string name="tesla_backup_failed">无法读取或应用备份。请检查格式、版本和设置范围，未保留此次导入的变更。</string>
+    <string name="tesla_backup_export_failed">设置导出失败，请选择可写入的文件位置。</string>
+    <string name="tesla_backup_exported">设置已导出</string>
+    <string name="tesla_backup_reconnect">应用并重新连接</string>
+    <string name="tesla_search_title">搜索设置</string>
+    <string name="tesla_search_empty">未找到匹配设置</string>
+    <string name="tesla_search_clear">清除</string>
+    <string name="tesla_search_https_condition">需先启用 HTTPS 并选择 PEM 或 PKCS#12。</string>
+    <string name="tesla_search_hotspot_condition">需先将“连接网络”设为“手机热点”。</string>
+    <string name="tesla_search_root_condition">需先选择 Root 模式并获得 Root 权限。</string>
+    <string name="tesla_phone_start_title">所选 iPhone 连上蓝牙时自动启动</string>
+    <string name="tesla_phone_start_help">所选 iPhone 连上手机蓝牙时自动在后台启动（首次 CarPlay 需在 App 内连接）。如未启动，请允许后台运行和自启动。</string>
+    <string name="tesla_phone_start_permission">请在应用权限中允许“附近的设备”，然后选择 iPhone。</string>
+    <string name="tesla_phone_start_select">先在蓝牙设置中将 iPhone 与 Android 配对，再在下方选择。</string>
+    <string name="tesla_phone_start_auth">内置 CarPlay 认证资源不可用，请安装完整的 TeslaPlay 构建后重新连接蓝牙。</string>
+    <string name="tesla_phone_start_blocked">Android 限制了后台启动。请先打开 TeslaPlay，在系统中允许后台运行及小米自启动，再重连蓝牙。</string>
+</resources>

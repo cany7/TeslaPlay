@@ -720,6 +720,13 @@ internal object WebSession {
         listener?.invoke(size?.first, size?.second)
     }
 
+    @Volatile var appliedBrowserViewport: Pair<Int, Int>? = null
+        private set
+    fun browserDisplayApplied(width: Int, height: Int) { appliedBrowserViewport = width to height }
+    fun stageSavedDisplay(config: TeslaDisplayPreferences.Config) {
+        browserViewport = if (config.enabled) config.profile().output() else browserViewport
+    }
+
     fun reportBrowserViewport(width: Int, height: Int): Boolean {
         if (
             width !in MIN_VIEWPORT_PIXELS..MAX_VIEWPORT_PIXELS ||

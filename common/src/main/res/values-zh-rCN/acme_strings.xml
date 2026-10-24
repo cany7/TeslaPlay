@@ -1,0 +1,4 @@
+<resources>
+    <string name="tesla_acme_title">DuckDNS 自动证书（推荐）</string>
+    <string name="tesla_acme_description">通过手机可用网络申请并续期受信任证书，无需开放公网端口。</string>
+</resources>

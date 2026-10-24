@@ -64,6 +64,7 @@ internal fun SettingsRow(
     Row(
         Modifier.fillMaxWidth()
             .testTag(tag)
+            .settingsSearchTarget(tag)
             .semantics(mergeDescendants = true) {}
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .heightIn(min = 72.dp)
@@ -103,6 +104,7 @@ internal fun SettingsToggle(
     Row(
         Modifier.fillMaxWidth()
             .testTag("toggle:${setting.name}")
+            .settingsSearchTarget(if (setting == ToggleSetting.TESLA) "toggle:TESLA:" + androidx.compose.ui.platform.LocalContext.current.resources.getResourceEntryName(title) else "toggle:${setting.name}")
             .toggleable(state.checked(setting), enabled = enabled, role = Role.Switch) {
                 actions.toggle(setting, it)
             }
@@ -275,7 +277,7 @@ internal fun SettingsTextDialog(
 
 @Composable
 internal fun SettingsButton(@StringRes title: Int, enabled: Boolean = true, onClick: () -> Unit) {
-    OutlinedButton(onClick, Modifier.padding(vertical = 4.dp), enabled = enabled) {
+    OutlinedButton(onClick, Modifier.settingsSearchTarget("button:" + androidx.compose.ui.platform.LocalContext.current.resources.getResourceEntryName(title)).padding(vertical = 4.dp), enabled = enabled) {
         Text(settingsString(title))
     }
 }

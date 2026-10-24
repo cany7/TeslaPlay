@@ -200,6 +200,8 @@
     <string name="settings_image_quality">Image quality (1–100)</string>
     <string name="settings_image_quality_description">Default: 75. Higher values preserve more detail and usually use more bandwidth. JPEG and WebP quality values are not equivalent. Saving also refreshes a static image; WebRTC video quality is unaffected.</string>
     <string name="settings_image_quality_invalid">Enter a whole number from 1 to 100.</string>
+    <string name="settings_recovery_condition">Available when WebRTC streaming is selected.</string>
     <string name="settings_audio_buffer_description">Adjusts audio buffering. Applies next connection.</string>
     <string name="settings_saved_apply_help">Changes are saved for the next connection. Tap Apply and reconnect to use all saved settings now.</string>
+    <string name="settings_https_ports_search">Under Advanced: HTTP / HTTPS ports</string>
 </resources>

@@ -34,6 +34,7 @@ internal fun ConnectionSettingsScreen(state: SettingsState, actions: SettingsAct
             actions.command(SettingsCommand.SELECT_PHONE)
         }
     }
+    PhoneBluetoothStartSettings(state, actions)
     SettingsGroup(R.string.settings_wireless_connection) {
         SettingsChoice(
             state,

@@ -1,0 +1,4 @@
+<resources>
+    <string name="tesla_acme_title">DuckDNS certificate (recommended)</string>
+    <string name="tesla_acme_description">Request and renew a public certificate using the phone’s Internet connection. No incoming public ports are required.</string>
+</resources>

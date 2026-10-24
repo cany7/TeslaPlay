@@ -1,0 +1,5 @@
+<resources>
+    <string name="tesla_window_title">Tesla 畫面尺寸</string>
+    <string name="tesla_window_help">右側窗口和大窗口分別保存，不改變 Tesla 自身窗口。未設置時，連接時採用瀏覽器區域。</string>
+    <string name="tesla_virtual_buttons">顯示虛擬按鈕</string>
+</resources>

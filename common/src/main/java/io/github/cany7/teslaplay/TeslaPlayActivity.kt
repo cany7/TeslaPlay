@@ -155,6 +155,15 @@ class TeslaPlayActivity : AppCompatActivity() {
                 .setData(uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
         }.onFailure { toast(getString(UiR.string.ui_could_not_open_the_icon_editor_try_again)) }
     }
+    private val exportSettings = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) Thread({
+            val result = runCatching {
+                val bytes = io.github.cany7.teslaplay.backup.SettingsBackupCodec.export(this)
+                requireNotNull(contentResolver.openOutputStream(uri, "wt")).use { it.write(bytes) }
+            }
+            runOnUiThread { toast(getString(if (result.isSuccess) R.string.tesla_backup_exported else R.string.tesla_backup_export_failed)) }
+        }, "settings-export").start()
+    }
     private val oemImageCrop = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             render()
@@ -179,6 +188,28 @@ class TeslaPlayActivity : AppCompatActivity() {
     }
     private val selectAuthenticationApk = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) authenticationImport.import(apk = uri)
+    }
+    private val importSettings = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) Thread({
+            val result = runCatching {
+                val bytes = requireNotNull(contentResolver.openInputStream(uri)).use {
+                    val output = java.io.ByteArrayOutputStream()
+                    val buffer = ByteArray(4096)
+                    while (true) {
+                        val count = it.read(buffer)
+                        if (count < 0) break
+                        require(output.size() + count <= io.github.cany7.teslaplay.backup.SettingsBackupCodec.MAX_BYTES)
+                        output.write(buffer, 0, count)
+                    }
+                    output.toByteArray()
+                }
+                io.github.cany7.teslaplay.backup.SettingsBackupCodec.preview(this, bytes)
+            }
+            runOnUiThread {
+                result.onSuccess(::previewSettingsImport)
+                    .onFailure { toast(getString(R.string.tesla_backup_failed)) }
+            }
+        }, "settings-import").start()
     }
 
     private val scan = registerForActivityResult(ScanQRCode()) { result ->
@@ -425,6 +456,27 @@ class TeslaPlayActivity : AppCompatActivity() {
         }
     }
 
+    private fun previewSettingsImport(preview: io.github.cany7.teslaplay.backup.SettingsBackupCodec.Preview) {
+        if (isFinishing || isDestroyed) return
+        fun apply(reconnect: Boolean) {
+            runCatching {
+                io.github.cany7.teslaplay.backup.SettingsBackupCodec.apply(this, preview)
+                refreshSettings()
+            }.onSuccess {
+                if (reconnect) applySettingsEffect(SettingsEffect.Reconnect())
+                toast(getString(R.string.tesla_backup_saved))
+            }.onFailure { toast(getString(R.string.tesla_backup_failed)) }
+        }
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.tesla_backup_title)
+            .setMessage(getString(R.string.tesla_backup_preview, preview.count, preview.skipped, preview.summary()))
+            .setNegativeButton(R.string.settings_cancel, null)
+            .setPositiveButton(R.string.settings_save) { _, _ -> apply(false) }
+        if (CarPlayBackgroundSession.hasSession() && preview.count > 0)
+            dialog.setNeutralButton(R.string.tesla_backup_reconnect) { _, _ -> apply(true) }
+        dialog.show()
+    }
+
     private fun settingsCommand(command: SettingsCommand) {
         when (command) {
             SettingsCommand.APPLY_SAVED_SETTINGS -> if (CarPlayBackgroundSession.hasSession())
@@ -448,6 +500,8 @@ class TeslaPlayActivity : AppCompatActivity() {
                 DiagnosticsRetention.clear(applicationContext)
                 toast(getString(io.github.cany7.teslaplay.host.R.string.settings_diagnostics_cleared))
             }
+            SettingsCommand.EXPORT_SETTINGS -> exportSettings.launch("TeslaPlay-settings.json")
+            SettingsCommand.IMPORT_SETTINGS -> importSettings.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
             SettingsCommand.EXPORT_REPORT -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) exportDiagnostics() else chooseReportDestination()
             SettingsCommand.DIPLAY -> openSystem(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/shihabal3amri/DiPlay")))
             SettingsCommand.SOURCE -> openSystem(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/fython/wheelplay")))

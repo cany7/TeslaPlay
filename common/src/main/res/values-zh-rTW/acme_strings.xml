@@ -1,0 +1,4 @@
+<resources>
+    <string name="tesla_acme_title">DuckDNS 自動證書（推薦）</string>
+    <string name="tesla_acme_description">透過手機可用網路申請並續期受信任憑證，無需開放公網連接埠。</string>
+</resources>

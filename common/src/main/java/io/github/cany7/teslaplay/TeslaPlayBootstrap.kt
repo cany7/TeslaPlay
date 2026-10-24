@@ -40,8 +40,10 @@ internal object TeslaPlayPreferences {
     fun savePhone(context: Context, address: String, name: String) {
         prefs(context).edit().putString("phone_address", address).putString("phone_name", name).apply()
     }
-    fun autoConnect(context: Context) = prefs(context).getBoolean("auto_connect", false)
+    // Portable settings share one atomic preferences commit; retain the original key as a migration fallback.
+    fun autoConnect(context: Context) = context.getSharedPreferences("teslaplay_airplay", Context.MODE_PRIVATE)
+        .getBoolean("auto_connect", prefs(context).getBoolean("auto_connect", false))
     fun saveAutoConnect(context: Context, value: Boolean) {
-        prefs(context).edit().putBoolean("auto_connect", value).apply()
+        context.getSharedPreferences("teslaplay_airplay", Context.MODE_PRIVATE).edit().putBoolean("auto_connect", value).apply()
     }
 }

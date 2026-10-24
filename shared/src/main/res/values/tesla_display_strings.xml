@@ -1,0 +1,5 @@
+<resources>
+    <string name="tesla_window_title">Tesla display size</string>
+    <string name="tesla_window_help">Save separate sizes for the right and large windows. This does not resize Tesla’s own windows. Without a saved size, the browser area is used when connecting.</string>
+    <string name="tesla_virtual_buttons">Show virtual buttons</string>
+</resources>
