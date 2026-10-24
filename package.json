@@ -1,6 +1,6 @@
 {
   "name": "teslaplay",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Android-hosted CarPlay LAN browser streaming; desktop scripts are development fixtures only",

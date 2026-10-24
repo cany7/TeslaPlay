@@ -1,0 +1,25 @@
+# TeslaPlay 本轮开发的来源与许可
+
+保留根目录 LICENSE、源文件版权声明、docs/upstream/THIRD_PARTY_NOTICES.md 和已有依赖许可。整改版通过本地独立构建输入打包 CarPlay 认证资源并自动加载；资源不提交 Git，也不包含在源码归档。来源及摘要见下方记录。
+
+- WheelPlay / fython：基础实现，GPL-3.0；源码内已有 AGPL-3.0-only 声明继续保留。
+- DiPlay / shihabal3amri：Bonjour、USB 恢复、触点槽位、崩溃记录、蓝牙音频／自动启动和备份／搜索参考，GPL-3.0。
+- DiPlay-tesla / WangZhuo2015：显示预设、网页菜单和诊断参考，GPL-3.0；适配既有 AGPL 网页／Compose 组件的文件保留相应声明。
+- DashPlay / yizhixiaoheigou：DuckDNS 和 ACME DNS-01 生命周期参考，GPL-3.0。未分发 acme.sh。
+- Bouncy Castle 1.79：复用已有证书、CSR、私钥处理依赖；MIT-style 许可全文位于 [Bouncy-Castle-LICENSE.txt](upstream/licenses/dependencies/Bouncy-Castle-LICENSE.txt)。未增加 ACME 第三方库。
+
+实际提交、文件与适配清单见 [UPSTREAM](UPSTREAM.md#teslaplay-f02f12-适配2026-10-23)。GPL 全文：[LICENSE](../LICENSE)；AGPL 全文：[DiAuto-AGPL-3.0.txt](upstream/licenses/DiAuto-AGPL-3.0.txt)。既有 BYD、CarPlay、NIO 等历史资源并未被本次新增代码许可证重新授权，其原声明保持不变。第二轮 0.1.0 的 App 启动图标及 CarPlay 返回入口采用用户提供的灰色 Tesla T，替换旧的 Material 启动图标和自行排版的 TESLA 车型文字图像。原始素材文件名为 `01_0x0-Tesla_T_CoolGrey.png`，2048 × 1975、含透明通道，SHA-256 为 `3049c0219a585538c428ffda4397918dfb0746149cb12ff48f08664780a06315`。原字节保存在 `shared/src/main/res/drawable-nodpi/tesla_t_cool_grey.png`；`common/src/main/res/raw/ic_car_home.png` 为保留比例、透明留边的 512×512 派生图，以满足 CarPlay 正方形图标要求；常规／圆形导出仅缩放并加白底，自适应／系统主题图标复用原图及透明轮廓，构建不依赖桌面路径。原始下载网址与授权条款未经独立核实；Tesla 商标及图像不纳入本项目代码许可证的重新授权范围，不能据此声称官方授权。资源说明见 [APP_ICON](APP_ICON.md)。旧 Material 许可正文继续保留为历史来源记录。
+
+构建产物应连同对应源码、修改说明、构建说明及上述许可一起交付。DuckDNS token、ACME 账户私钥、证书私钥、认证资源和签名材料不随源码分发。
+
+## 2026-10-24 认证与界面收敛
+
+自动装载逻辑参考 DiPlay `4487c689bfdd3baab12de67a993a671b67939eb7` 的 `common/.../DiPlayBootstrap.kt` 和 `mobile/build.gradle.kts`，沿用 WheelPlay `MfiAssetStore` 校验与安装。资源取自官方 [DiPlay 0.2.21 APK](https://github.com/shihabal3amri/DiPlay/releases/download/v0.2.21/DiPlay-0.2.21.apk) 的两项 assets；公开可下载不等于资源获得了新的开源许可，保留上游资源声明，不以项目代码许可证重新授权。
+
+| 文件 | SHA-256 |
+| --- | --- |
+| DiPlay-0.2.21.apk | `916c0708beb1022d4ea9678ff6a46dfb6d234f707837a2cbd80d615e8e2bb2e3` |
+| assets/offline-mfi/identity.pk8 | `bd50eda2d8dd95a8464440f1aebca7068dcab46a2461ecaf826c7f98f5621a75` |
+| assets/offline-mfi/certificate.p7b | `634a93dd6c4338080524025411752597ecb828591839cd062a8292fd7e9e844e` |
+
+本地构建输入位置为 `.local/auth-assets/offline-mfi/`，受 Git 忽略。交付使用 `:mobile:assembleProvisionedDebug`，检查 APK 中两项资源与输入逐字节一致。关于页 License 提供 TeslaPlay、WheelPlay、DiPlay／xcertplay、DiPlay-tesla、DashPlay 仓库入口与本仓库适用许可正文；首次整改版保留旧包名；0.1.0 使用独立包名 `io.github.cany7.teslaplay`（调试包追加 `.debug`），新包名不自动继承旧包私有数据；迁移时保留旧数据直至新包验证完成。

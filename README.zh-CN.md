@@ -1,70 +1,38 @@
-# WheelPlay
+# TeslaPlay
 
 [English](README.md) · **简体中文**
 
-在 Android 设备上运行 CarPlay，通过车机浏览器查看和操控。WheelPlay 在局域网内提供画面、触控与配对服务，车机无需安装额外 App，也无需部署独立服务器。
+在 Android 手机上运行 CarPlay，通过 Tesla 浏览器查看和操控。TeslaPlay 基于 WheelPlay，复用现有 CarPlay、网页串流、配对和触控实现，补充 Tesla 热点连接、窗口配置、iPhone 蓝牙输出及 DuckDNS HTTPS。
 
-[官网](https://wheelplay.gwo.app/) · [下载开发版](https://wheelplay.gwo.app/download) · [使用指南](https://wheelplay.gwo.app/docs/) · [常见问题](https://wheelplay.gwo.app/docs/faq/)
+项目仓库：[cany7/TeslaPlay](https://github.com/cany7/TeslaPlay)。当前版本为 **0.1.1**，正式应用 ID 为 `io.github.cany7.teslaplay`，调试应用 ID 为 `io.github.cany7.teslaplay.debug`。本仓库不提供未经发布验证的下载入口；本地构建及产物位置见下文。
 
-## 支持范围
+## 使用流程
 
-| 输入源 | 当前状态 |
-| --- | --- |
-| **CarPlay** | 支持 iPhone USB 与无线连接、浏览器显示与触控；需要有效的 CarPlay 认证资源。 |
-| **Android Auto（实验性）** | 已实现 USB AOA、显式 Head Unit Server TCP 连接及本机连接引导；设备兼容性仍需真机验证。 |
-| **VNC（实验性）** | 通过 RFB 3.3/3.7/3.8 连接远程桌面，支持 JPEG/WebP 画面、触控、鼠标、实体键盘及仅查看模式。实际服务端与设备兼容性仍需验证。 |
-| **诊断输入源** | 提供 H.264、Surface 和帧缓冲测试源，无需连接手机即可检查画面链路。 |
-| **ICCOA CarLink** | 暂不可用：未包含专有 SDK，也未实现协议接入。 |
+准备 Android 9 或更高版本的宿主手机、iPhone，以及可连接宿主热点的 Tesla。首次配置和验证在停车状态进行。
 
-同一时间只运行一个投影输入源，并允许一个浏览器控制会话。Android Auto 的音频播放和麦克风输入均使用 Android 宿主，尚不支持浏览器音频／麦克风转发或自动无线发现。连接方式与限制见 [Android Auto 指南](docs/ANDROID_AUTO.md)。
+1. 安装包含认证资源的 TeslaPlay APK。认证资源由构建时预置并在首次运行自动加载，App 不再提供从 DiPlay 导入的设置或引导；资源缺失时需使用完整构建。
+2. 打开 Android 手机热点，使电脑或 Tesla 接入。无线连接默认使用热点，按 App 要求配置热点名称和密码；需要热点联网时使用外部 Shizzi，TeslaPlay 本身不提供网络共享或热点 DNS 控制。
+3. 在“Tesla 网络与 HTTPS”选择连接方式，默认免 Root VPN，并完成 Android 的 VPN 授权。兼容入口固定为 `100.96.0.1`；保留 Root 连接方式供已有环境使用。
+4. 选择 **DuckDNS** 证书类型，填写自己的 DuckDNS 域名和 token，接受证书服务条款后保存并申请。App 自动更新该域名的 A 记录到当前入口，管理 DNS-01 证书申请和续期，无需在 DuckDNS 页面手填 IPv4。查看实际服务证书和续期状态，不能仅凭“上次任务成功”判断当前证书。
+5. 在 Tesla 浏览器打开 App 显示的完整地址，例如 `https://你的域名.duckdns.org:8443/`。默认 HTTPS 端口为 `8443`，不能省略协议或端口。DuckDNS 解析不会把手机服务转发到公网，浏览器仍须能到达手机入口。
+6. 扫描网页二维码或输入配对码完成配对。保持 App 前台，通过 USB 或无线方式连接 iPhone，并完成 Android 权限及 iPhone CarPlay 授权。
 
-## 主要功能
+恢复配对需要保留浏览器站点数据及访问地址。HTTP 和 HTTPS 是不同来源；更换地址、清除浏览器数据或撤销设备后可能需要重新配对。
 
-- **画面与触控**：WebRTC H.264／受支持的 HEVC 直通、JPEG／WebP 兼容串流、全屏，以及可调分辨率、帧率和图像质量。默认使用原生 Video 渲染，另提供两种实验性 Canvas 模式。
-- **浏览器配对**：扫描网页二维码或输入配对码，后续可恢复已记住的配对；支持查看、重命名和撤销设备。
-- **CarPlay 音频与控制**：默认使用 Android 音频和麦克风，可选浏览器路由；在浏览器及手机 App 支持时提供 Media Session 媒体信息和播放控制。
-- **CarPlay 偏好**：日夜模式、安全边距、自定义返回车机入口的名称与图标、浏览器离线策略，以及可选的 Android 或浏览器 GPS。默认使用 iPhone 自身定位。
-- **网络兼容**：可配置 HTTP／HTTPS 服务和导入证书；可选实验性无 Root VPN 或 Root 热点路由，适配限制私有 IP 访问的车机浏览器。
-- **语言与诊断**：App 和局域网页面随 Android 系统语言提供英文、简体中文及繁体中文，可在本地导出诊断报告；独立官网支持中英文和深浅主题。
+## 功能与设置
 
-## 快速开始
+- **画面**：保留 WebRTC、HEVC 和 60 FPS 设置；HEVC 默认开启，图片兼容串流质量默认 100。Tesla 右侧／大窗口分别保存配置，输出尺寸统一由窗口配置管理；保存后明确应用才重连，浏览器尺寸变化不会自动中断运行中的会话。
+- **画面页面**：“外观”管理日间／夜间／跟随系统；“图标与文字大小”管理 CarPlay 界面密度。图片格式和质量只作用于图片兼容串流及 WebRTC 回退；高级设置提供 WebRTC 卡顿容忍时间。安全区域和右舵布局保留。
+- **音频**：统一选择 Android 设备、浏览器或 **iPhone 蓝牙输出**。蓝牙选项让 iPhone 自己管理蓝牙音频与麦克风；在 iPhone 中选择 Tesla 等目标设备，不由 Android 转发。改变选择后按提示应用重连，界面区分所选偏好与当前会话输出。
+- **浏览器与触控**：二维码配对、多点触控、普通顶栏和可选虚拟按钮。虚拟按钮开关仅在手机 App“浏览器设置”中配置。浏览器麦克风和 GPS 需要可信 HTTPS 及浏览器授权。
+- **定位**：默认使用 iPhone 自身定位，可按需选择 Android 或浏览器定位。“定位设置”不再显示 OEM 信息；车型内部固定 Tesla，App 和 CarPlay 返回入口使用指定 Tesla T 图标。
+- **维护**：设置搜索、设置备份、已配对设备管理、指定蓝牙设备触发服务启动和本地诊断。普通设置备份不包含证书私钥、DuckDNS token、认证资源等凭据。
 
-### 1. 安装 WheelPlay
+保留实验性 [Android Auto](docs/ANDROID_AUTO.md)、[VNC](docs/VNC.md) 与诊断输入源；同一时间仅一个投影输入源及一个浏览器控制会话。ICCOA 不再出现在源选择中。Android Auto 音频和麦克风使用 Android 宿主；VNC 的既有传输不支持 TLS/VeNCrypt。
 
-准备一台 **Android 9 或更高版本**的宿主设备、一部受支持的手机，以及能够通过局域网访问宿主的现代车机浏览器。普通局域网使用不需要 Root。
-
-打开[下载最新开发版](https://wheelplay.gwo.app/download)，下载 `wheelplay-debug-apk` 并解压安装其中的 APK。该入口跳转到 [Android Debug Build](https://github.com/fython/wheelplay/actions/workflows/debug-build.yml) 工作流中 `main` 分支最新成功构建的产物，结果最多缓存五分钟。GitHub 下载可能需要登录，构建产物也可能过期。这些安装包是开发构建，并非稳定发行版。
-
-### 2. 配置输入源
-
-使用 **CarPlay** 时，打开 **设置 → CarPlay 认证资源**。公开 CI 构建不包含这些资源，请导入匹配的 `identity.pk8` 和 `certificate.p7b`，或按应用引导从兼容的 DiPlay APK 导入，无需安装 DiPlay。导入和校验均在本机完成，资源存放于应用私有目录，不上传、不参与备份。详细步骤见[认证资源导入](docs/AUTHENTICATION_IMPORT.md)。
-
-缺少 CarPlay 认证资源不影响 Web 服务、浏览器配对和诊断输入源。使用 **Android Auto** 时，进入 **输入源 → Android Auto**，按 [USB／本机／TCP 说明](docs/ANDROID_AUTO.md) 配置；本机模式需要先手动启动 Android Auto 的车机服务器。
-
-使用 **VNC** 时，进入 **输入源 → VNC**，填写已有 VNC 服务端的 IP 地址、端口及可选的临时密码。请使用可信局域网或 VPN：VNC 传输不加密，暂不支持 TLS/VeNCrypt。配置步骤与限制见 [VNC 指南](docs/VNC.md)。
-
-### 3. 配对车机浏览器
-
-1. 启动 WheelPlay，让 Android 宿主与车机处于能够互相访问的网络中。
-2. 在车机浏览器打开 **App 显示的局域网地址**。官网仅提供下载和使用文档。
-3. 用 WheelPlay 扫描网页二维码并确认配对，或在网页输入配对码；选择网页选项并启动显示。
-4. 使用 CarPlay 时，配置期间保持 WheelPlay 在前台，通过 USB 或无线方式连接 iPhone，完成 Android 权限和 iPhone 的 CarPlay 授权。也可从已配对浏览器的等待页面发起连接。
-5. 连接成功后，通过车机触摸屏操作投影界面。
-
-再次访问可恢复配对，但仍需启动显示。清理浏览器存储、更换访问地址或切换 HTTP／HTTPS 后需要重新配对。已记住的设备可在 **设置 → 浏览器设备 → 连接过的设备** 中移除。
-
-## 兼容性说明
-
-- 浏览器麦克风和 GPS 需要受信任的 HTTPS 及浏览器授权。CarPlay 默认使用 Android 音频／麦克风；浏览器 GPS 每次打开页面默认关闭。配置见[音频与 HTTPS 指南](docs/BROWSER_AUDIO.md)。
-- 实际帧率和稳定性取决于手机、宿主、浏览器、网络及 Android 后台限制。WebRTC 使用局域网 UDP，不依赖外部 STUN／TURN，必要时回退到图像串流。Canvas 模式不保证提高帧率或绕过车机浏览器限制。
-- 限制私有 IP 访问的浏览器可尝试 [Tesla 兼容模式](docs/TESLA_HTTP.md)，但不能据此保证所有车机和 Android 设备均可用。
-- 仅在可信局域网使用。HTTP 流量未加密，可选 HTTPS 需要受信任的证书；请勿将服务暴露到公网。首次配置和兼容性测试应在车辆停稳后进行。
+电脑检查不能替代 Tesla 和 iPhone 实测。请在停车状态检查窗口尺寸、音乐／导航／通话／Siri、地图手势及手机后台运行。
 
 ## 构建
-
-### Android 应用
-
-当前使用以下工具链，仓库已提交 Gradle wrapper 和 daemon JVM 配置。
 
 | 工具 | 版本 |
 | --- | --- |
@@ -72,68 +40,45 @@
 | Gradle／Android Gradle Plugin | 9.3.1／9.1.0 |
 | Android SDK／Build Tools | API 36／36.0.0 |
 | Android NDK／CMake | 28.2.13676358／3.22.1 |
-| 浏览器测试与开发工具所需 Node.js | 22 或更高版本 |
+| Node.js | 22 或更高版本 |
 
-通过 `ANDROID_HOME` 或未纳入版本控制的 `local.properties` 中的 `sdk.dir` 配置 Android SDK，安装上述工具链后，在仓库根目录执行：
+使用 `ANDROID_HOME` 或未提交的 `local.properties` 中的 `sdk.dir` 指定 SDK。仓库包含 Gradle wrapper；首次原生构建需要获取固定版本的 libdatachannel 与 Mbed TLS。
 
-```sh
-./gradlew :mobile:assembleDebug
+将匹配的认证资源作为本地独立输入放置：
+
+```text
+.local/auth-assets/offline-mfi/identity.pk8
+.local/auth-assets/offline-mfi/certificate.p7b
 ```
 
-产物为 `mobile/build/outputs/apk/debug/mobile-debug.apk`，应用 ID 为 `moe.feng.wheelplay.debug`。首次原生构建会从 GitHub 获取固定版本的 libdatachannel 和 Mbed TLS。默认构建不包含 CarPlay 认证资源，安装后可自行导入。
+也可将 `TESLAPLAY_AUTH_ASSETS_DIR` 指向包含 `offline-mfi/` 的目录。资源不提交 Git，不随源码归档；来源和摘要见[第三方声明](docs/TESLAPLAY_THIRD_PARTY_NOTICES.md)。生成可直接使用 CarPlay 的调试包：
 
-如需在私有构建中预置资源，将 `offline-mfi/identity.pk8` 和 `offline-mfi/certificate.p7b` 放到 `.local/auth-assets/` 或 `WHEELPLAY_AUTH_ASSETS_DIR` 指定的目录下，再运行 `./gradlew :mobile:assembleProvisionedDebug` 检查打包结果。不要将这些资源提交到 Git 或公开 APK。
+```sh
+./gradlew :mobile:assembleProvisionedDebug
+```
 
-运行 CI 使用的 Android 检查：
+任务检查认证资源是否完整且与 APK 内容一致。产物为 `mobile/build/outputs/apk/debug/mobile-debug.apk`，版本 `0.1.1`、应用 ID `io.github.cany7.teslaplay.debug`。`assembleDebug` 可用于普通编译检查，但没有上述资源时不能据此交付可用的 CarPlay 包。App 不再提供安装后导入入口。
+
+新包名会被 Android 视为独立 App，不能覆盖旧的 `moe.feng.wheelplay.debug`。旧设置、有效证书和配对不会自动继承；普通设置备份不能替代完整迁移。保留旧数据直到新包验证完成，避免两个包同时占用 VPN 和服务端口。
+
+按改动范围运行相关检查：
 
 ```sh
 ./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest \
-  :common:assembleDebugAndroidTest :mobile:lintDebug :mobile:assembleDebug
-```
-
-该命令会构建仪器测试 APK；CI 另行在 Android 9 和 Android 16 模拟器上运行浏览器页面测试。浏览器侧检查和桌面演示使用：
-
-```sh
+  :common:assembleDebugAndroidTest :mobile:lintDebug
 npm ci
 npm test
 npm run check
-npm run demo
 ```
 
-演示地址为 `http://localhost:8081`，配对码为 `123456`，使用合成测试画面。这只是开发工具，真实手机连接和局域网服务由 Android App 提供。
+`assembleDebugAndroidTest` 只编译仪器测试 APK；不代表已完成设备验证。桌面合成画面演示使用 `npm run demo`，访问 `http://localhost:8081`，配对码 `123456`。该演示不连接真实手机。
 
-### 产品官网
+## 文档与来源
 
-[`website/`](website/README.md) 是依赖独立的 Astro 官网。推荐使用 Node.js 24 LTS，不需要 Android SDK。
+- [实际复用来源与提交](docs/UPSTREAM.md)
+- [第三方和素材声明](docs/TESLAPLAY_THIRD_PARTY_NOTICES.md)
+- [图标来源与导出方式](docs/APP_ICON.md)
 
-```sh
-npm ci --prefix website
-npm run site:dev
-```
+`mobile/` 为应用打包入口，`common/` 为宿主 UI、网页服务和投影源，`shared/` 为协议组件与共享资源。`website/` 保留独立网站代码，不作为已经发布的 TeslaPlay 下载服务。历史实现文档保留上游来源；当前产品流程以本 README 为准。
 
-检查与构建：
-
-```sh
-npm run site:check
-npm run site:build
-npm run site:test
-```
-
-静态产物输出到 `website/dist/`，中英文文档正文使用 Markdown 维护。Cloudflare Worker 或 Pages Functions 通过共用的缓存解析器处理 `/download`，跳转到 GitHub 构建产物；Astro 开发服务器不运行该接口。部署配置见[官网维护指南](website/README.md)。
-
-## 仓库结构与文档
-
-| 路径 | 内容 |
-| --- | --- |
-| [`mobile/`](mobile/) | Android 应用入口与打包配置 |
-| [`common/`](common/) | 宿主界面、Compose 设置、局域网服务、浏览器资源、投影源及原生 WebRTC 桥接 |
-| [`shared/`](shared/) | CarPlay／AirPlay、Android Auto 与 VNC 协议组件、共享资源 |
-| [`website/`](website/) | Astro 官网与 Cloudflare 下载接口 |
-| [`scripts/`](scripts/)、[`test/`](test/) | 桌面演示及浏览器／仓库检查 |
-| [`docs/`](docs/README.md) | 实现说明、验证记录及保留的上游文档 |
-
-进一步排查可阅读[投影输入源](docs/PROJECTION_IMPLEMENTATION.md)、[WebRTC 恢复](docs/WEBRTC_RECOVERY.md)、[图像串流](docs/IMAGE_STREAM.md)、[渲染模式](docs/MEDIA_PRESENTATION.md)和[媒体控制](docs/MEDIA_SESSION.md)。浏览器控制台中的 `window.wheelplayStats` 提供各阶段诊断数据，但不代表端到端延迟。
-
-## 来源与许可
-
-WheelPlay 基于 **DiPlay／xcertplay**，保留上游许可与声明。详见 [LICENSE](LICENSE)、[上游来源说明](docs/UPSTREAM.md)和[第三方声明](docs/upstream/THIRD_PARTY_NOTICES.md)；第三方组件及资源仍受各自许可条款约束。原生 WebRTC 依赖的[独立许可声明](common/src/main/assets/webrtc-licenses.txt)也随 APK 分发。
+TeslaPlay 复用 WheelPlay、DiPlay／xcertplay、DiPlay-tesla、DashPlay 等项目，保留原作者及适用许可。参见 [LICENSE](LICENSE)、[上游第三方声明](docs/upstream/THIRD_PARTY_NOTICES.md)及 APK“关于 → License”。代码许可不重新授权认证资源或 Tesla 商标图片；本项目不是 Tesla 官方产品。

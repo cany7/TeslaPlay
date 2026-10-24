@@ -1,30 +1,43 @@
-# App icon
+# TeslaPlay app icon
 
-The launcher uses Google's **Material Symbols Outlined `laptop_car`** with
-`FILL=0`, `wght=400`, `GRAD=0`, and `opsz=24`. The original path is preserved,
-painted white, and centered over **Material Green 500 (`#4CAF50`)**.
+The launcher and CarPlay return shortcut use the user-supplied gray Tesla T image:
+`01_0x0-Tesla_T_CoolGrey.png`.
+It is a 2048 × 1975 PNG with transparency. Its original download URL and licensing
+terms have not been independently verified. Tesla trademarks and this image are
+not relicensed by the project's source-code license.
 
-Source: https://github.com/google/material-design-icons/blob/master/symbols/web/laptop_car/materialsymbolsoutlined/laptop_car_24px.svg
+Original SHA-256:
+`3049c0219a585538c428ffda4397918dfb0746149cb12ff48f08664780a06315`.
 
-Google distributes Material Symbols under Apache License 2.0; the license is
-included in `docs/licenses/Material-Symbols-Apache-2.0.txt`.
+The original bytes are checked in at:
 
-The adaptive layers use a 108dp canvas. The foreground artwork is 45.36 × 38.88dp,
-centered at (54, 54) and contained in the 66dp safe circle. The background has
-no baked-in mask, border, or shadow. The same vector supplies the monochrome
-layer for Android's themed icons.
+- `shared/src/main/res/drawable-nodpi/tesla_t_cool_grey.png`
+The launcher square master `shared/src/main/res/drawable-nodpi/tesla_launcher_square.png`
+preserves the original aspect ratio, pads the short edge, and flattens transparency
+on white. The adaptive foreground contains a centered 60 × 60dp square in a full 108dp
+canvas, rasterized as an 864 × 864 PNG. Padding is baked into the pixels rather
+than relying on a layer-list item size, which this phone’s launcher normalizes
+away. The central 72dp visible viewport therefore retains white margins. The T is never stretched, traced or cropped. Square and round legacy
+exports use this same viewport.
 
-`mobile/src/main/AndroidManifest.xml` points both launcher icon attributes at
-the adaptive resources in `shared`. Density-specific legacy square and round
-icons and the 512px Play Store image use the same artwork and color. Store
-artwork is square; rounding is applied by the store or launcher.
+The monochrome foreground uses a separate square PNG with preserved alpha,
+so Android themed icons tint the T instead of a solid square. The CarPlay return
+resource `common/src/main/res/raw/ic_car_home.png` is a 512 × 512 white PNG with
+the same visual margins as the launcher export. Android builds do not depend
+on the user's Desktop directory.
 
-Regenerate the bitmap exports from the Android vector and color resources:
+`mobile/src/main/AndroidManifest.xml` references the launcher resources in
+`shared`. Generate density-specific square/round WebP exports, the 512px PNG
+store artwork, and the SVG preview (which embeds the padded square PNG) with:
 
 ```sh
 npm install --no-save --package-lock=false sharp
 node scripts/generate-app-icons.mjs
 ```
 
-The generator also creates `docs/assets/app-icon.svg` as an editable export.
-Adaptive icon sizing guidance: https://developer.android.com/develop/ui/compose/system/icon_design_adaptive
+`sharp` is only an export-time dependency, not an Android build dependency.
+Generated assets are committed so normal builds do not run this tool.
+
+The former Google Material Symbols `laptop_car` launcher is no longer used.
+Its historical Apache license remains in
+`docs/licenses/Material-Symbols-Apache-2.0.txt`; the Tesla T is not covered by it.

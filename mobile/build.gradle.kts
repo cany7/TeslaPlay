@@ -22,8 +22,8 @@ android {
         applicationId = "io.github.cany7.teslaplay"
         minSdk = 28
         targetSdk = 36
-        versionCode = 21
-        versionName = "0.3.0"
+        versionCode = 3
+        versionName = "0.1.1"
 
     }
 
@@ -45,7 +45,6 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
-            versionNameSuffix = "-web-debug"
         }
         release {
             optimization {

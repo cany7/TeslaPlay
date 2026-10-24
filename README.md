@@ -1,70 +1,38 @@
-# WheelPlay
+# TeslaPlay
 
 **English** · [简体中文](README.zh-CN.md)
 
-Run CarPlay on an Android device and use it from your car's browser. WheelPlay hosts the display, touch controls, and pairing service on your local network; the car needs no additional app or server.
+Run CarPlay on an Android phone and use it from a Tesla browser. TeslaPlay builds on WheelPlay's CarPlay, streaming, pairing, and touch implementation, with Tesla window profiles, hotspot connections, iPhone Bluetooth audio, and DuckDNS HTTPS.
 
-[Website](https://wheelplay.gwo.app/en/) · [Download development build](https://wheelplay.gwo.app/download?lang=en) · [User guide](https://wheelplay.gwo.app/en/docs/) · [FAQ](https://wheelplay.gwo.app/en/docs/faq/)
-
-## What it supports
-
-| Input source | Current support |
-| --- | --- |
-| **CarPlay** | USB and wireless iPhone connections, browser display and touch control. Requires valid CarPlay authentication resources. |
-| **Android Auto — experimental** | USB AOA, explicit Head Unit Server TCP connections, and a guided same-phone connection. Device compatibility still needs validation. |
-| **VNC — experimental** | Remote desktop over RFB 3.3/3.7/3.8, JPEG/WebP display, touch, mouse and physical keyboard input, and view-only mode. Actual server/device compatibility still needs validation. |
-| **Diagnostic sources** | H.264, Surface, and framebuffer test sources for checking the display pipeline without a phone connection. |
-| **ICCOA CarLink** | Unavailable: the proprietary SDK is not included and no protocol implementation is provided. |
-
-One projection source and one browser control session can be active at a time. For Android Auto, audio plays on the Android host and microphone input uses the host; browser audio/microphone routing and automatic wireless discovery are not implemented. See the [Android Auto guide](docs/ANDROID_AUTO.md) for setup and limitations.
-
-## Features
-
-- **Display and touch:** WebRTC H.264 / supported HEVC passthrough, JPEG / WebP compatibility streaming, fullscreen, and adjustable resolution, frame rate, and image quality. Native video is the default renderer; two experimental Canvas modes are also available.
-- **Pairing:** Scan the browser's QR code or enter a pairing code. Remembered browsers can restore pairing; view, rename, or revoke them in settings.
-- **CarPlay audio and controls:** Android audio and microphone by default, optional browser routing, and Media Session metadata and playback controls where the browser and phone app support them.
-- **CarPlay preferences:** Day/night mode, safe margins, custom return-to-car name and icon, browser-disconnection behavior, and optional Android or browser GPS. The iPhone's own location is used by default.
-- **Connection options:** Configurable HTTP / HTTPS listeners, certificate import, and opt-in Tesla compatibility through experimental no-root VPN or root hotspot routing.
-- **Languages and diagnostics:** English, Simplified Chinese, and Traditional Chinese app/browser text follows Android's locale. Export diagnostic reports locally; the separate product website offers Chinese and English with light and dark themes.
+Repository: [cany7/TeslaPlay](https://github.com/cany7/TeslaPlay). The version is **0.1.1**. Application IDs are `io.github.cany7.teslaplay` and `io.github.cany7.teslaplay.debug`. No unverified release download link is provided; see the build instructions below for local artifacts.
 
 ## Getting started
 
-### 1. Install WheelPlay
+Use an Android 9 or newer host phone, an iPhone, and a Tesla connected to the host's hotspot. Complete setup and checks while parked.
 
-You need an **Android 9 or newer** host, a supported phone, and a modern car browser that can reach the host over the local network. Ordinary LAN operation does not require root.
+1. Install a provisioned TeslaPlay APK. CarPlay authentication resources are bundled at build time and loaded automatically on first use. The app no longer offers a DiPlay import page or onboarding flow; a build missing resources must be replaced with a complete build.
+2. Enable the Android hotspot and connect the Tesla or computer. Hotspot is the default wireless connection method; configure its name and password as required by the app. Use external Shizzi if hotspot internet access is needed. TeslaPlay does not implement tethering or hotspot DNS control.
+3. Open the Tesla network and HTTPS settings. The default connection uses a no-root VPN with the fixed entrance `100.96.0.1`; accept Android's VPN permission. A root connection option remains available for existing setups.
+4. Select **DuckDNS** as the certificate type, enter your domain and token, accept the certificate service terms, and save/request a certificate. The app updates the domain's A record to the active entrance and manages DNS-01 issuance and renewal; no manual IPv4 update on DuckDNS is needed. Check the actual serving certificate and renewal state, rather than only the last task result.
+5. Open the complete address shown by the app, for example `https://your-name.duckdns.org:8443/`. The default HTTPS port is `8443`; include both the scheme and port. DNS resolution does not relay the phone's service through the internet: the browser still needs network access to the phone.
+6. Scan the browser's QR code or enter a pairing code. Keep the app in the foreground, connect the iPhone over USB or wirelessly, and complete Android permissions and the iPhone's CarPlay prompt.
 
-[Download the latest development build](https://wheelplay.gwo.app/download?lang=en), then extract and install the APK from `wheelplay-debug-apk`. The link redirects to the artifact from the latest successful `main` run of [Android Debug Build](https://github.com/fython/wheelplay/actions/workflows/debug-build.yml); results are cached for up to five minutes. GitHub may require sign-in, and artifacts can expire. These are development builds, not stable releases.
+Pairing restoration depends on the browser retaining site data and using the same address. HTTP and HTTPS are separate origins. Changing the address, clearing site data, or revoking a browser can require pairing again.
 
-### 2. Set up your input source
+## Features and settings
 
-For **CarPlay**, open **Settings → CarPlay authentication resources**. Public CI builds do not bundle these resources. Import a matching `identity.pk8` and `certificate.p7b`, or import them from a compatible DiPlay APK using the app's guided flow. DiPlay itself does not need to be installed. Imports are validated locally and stored in private, backup-excluded storage; they are not uploaded. See the [authentication import guide](docs/AUTHENTICATION_IMPORT.md).
+- **Display:** WebRTC, HEVC, and 60 FPS settings remain available. HEVC defaults on and image compatibility quality defaults to 100. Tesla side and large windows store separate profiles. Window profiles are the single source of output dimensions; saving marks a pending change, and explicit apply reconnects. Browser resizing does not interrupt an active session automatically.
+- **Display settings:** Appearance controls day/night/system behavior; icon and text size controls CarPlay UI density. Image format and quality affect image streaming and WebRTC fallback only. WebRTC stall tolerance is under advanced settings. Safe areas and right-hand-drive layout remain available.
+- **Audio:** Choose Android, browser, or **iPhone Bluetooth output** in one selector. Bluetooth output lets the iPhone manage its own audio and microphone; choose Tesla or another target on the iPhone. Android does not relay this audio. Apply a changed selection by reconnecting; the UI distinguishes the saved choice from the active session.
+- **Browser and touch:** QR pairing, multitouch, the standard toolbar and optional virtual buttons controlled only from the Android app’s browser settings. Browser microphone and GPS require trusted HTTPS and browser permission.
+- **Location:** The iPhone's location is the default, with Android and browser options. Location settings contain no OEM card. The vehicle is fixed to Tesla internally, and the launcher and CarPlay return shortcut use the specified Tesla T image.
+- **Maintenance:** Settings search and backup, paired-device management, selected Bluetooth device service startup, and local diagnostics. Ordinary settings backups exclude certificate private keys, DuckDNS tokens, and CarPlay authentication resources.
 
-Missing CarPlay resources do not prevent the Web service, browser pairing, or diagnostic sources from working. For **Android Auto**, use **Input sources → Android Auto** and follow the [USB / local / TCP instructions](docs/ANDROID_AUTO.md). Same-phone mode requires manually starting Android Auto's Head Unit Server first.
+Experimental [Android Auto](docs/ANDROID_AUTO.md), [VNC](docs/VNC.md), and diagnostic sources remain available; one projection source and one controlling browser session can run at a time. ICCOA is removed from source selection. Android Auto uses the Android host for audio and microphone; the existing VNC transport does not support TLS/VeNCrypt.
 
-For **VNC**, open **Input sources → VNC** and enter the IP address, port, and optional temporary password of an existing VNC server. Use a trusted LAN or VPN: VNC traffic is unencrypted and TLS/VeNCrypt is not supported. See the [VNC guide](docs/VNC.md) for setup and limitations.
-
-### 3. Pair the car browser
-
-1. Start WheelPlay and connect the Android host and car to a network where they can reach each other.
-2. Open the **local address shown in the app** in the car browser. The product website is only for downloads and documentation.
-3. Scan the browser's QR code with WheelPlay and approve pairing, or enter the pairing code in the browser. Select browser options and start the display.
-4. For CarPlay, keep WheelPlay in the foreground during setup, connect the iPhone by USB or wirelessly, and complete Android permissions and the iPhone's CarPlay prompt. You can also start the connection from the paired browser's waiting screen.
-5. Once connected, use the car touchscreen to control the projected interface.
-
-Later visits can restore pairing, but still require starting the display. Clearing browser storage, changing the address, or switching HTTP / HTTPS requires pairing again. Remove remembered devices under **Settings → Browser devices → Connected devices**.
-
-## Compatibility notes
-
-- Browser microphone and GPS access require trusted HTTPS and browser permissions. Android handles CarPlay audio/microphone by default; browser GPS is off on each page load. See [audio and HTTPS setup](docs/BROWSER_AUDIO.md).
-- Actual frame rate and stability depend on the phone, host, browser, network, and Android background restrictions. WebRTC uses local UDP without external STUN/TURN and falls back to image streaming when necessary. Canvas rendering does not guarantee higher frame rates or bypass car browser restrictions.
-- Browsers that block private IP addresses may need [Tesla compatibility mode](docs/TESLA_HTTP.md). Its availability does not establish compatibility with every car or Android device.
-- Use a trusted local network. HTTP traffic is unencrypted; optional HTTPS requires a trusted certificate. Do not expose the service to the public internet. Complete setup and compatibility testing while parked.
+Desktop checks do not replace Tesla and iPhone validation. Check window sizes, music/navigation/calls/Siri, gestures and Android background behavior on the actual devices while parked.
 
 ## Build
-
-### Android app
-
-The current build uses the following toolchain. The Gradle wrapper and daemon JVM configuration are committed to the repository.
 
 | Tool | Version |
 | --- | --- |
@@ -72,68 +40,45 @@ The current build uses the following toolchain. The Gradle wrapper and daemon JV
 | Gradle / Android Gradle Plugin | 9.3.1 / 9.1.0 |
 | Android SDK / Build Tools | API 36 / 36.0.0 |
 | Android NDK / CMake | 28.2.13676358 / 3.22.1 |
-| Node.js for browser tests and fixtures | 22 or newer |
+| Node.js | 22 or newer |
 
-Configure your Android SDK through `ANDROID_HOME` or `sdk.dir` in an untracked `local.properties`, install the toolchain above, then run from the repository root:
+Set the SDK using `ANDROID_HOME` or `sdk.dir` in an untracked `local.properties`. The Gradle wrapper is included. The first native build fetches pinned libdatachannel and Mbed TLS sources.
 
-```sh
-./gradlew :mobile:assembleDebug
+Provide matching authentication resources as separate local build inputs:
+
+```text
+.local/auth-assets/offline-mfi/identity.pk8
+.local/auth-assets/offline-mfi/certificate.p7b
 ```
 
-Output: `mobile/build/outputs/apk/debug/mobile-debug.apk` (application ID `moe.feng.wheelplay.debug`). The first native build fetches pinned libdatachannel and Mbed TLS sources from GitHub. The default build excludes CarPlay authentication resources; import them after installation.
+Alternatively, set `TESLAPLAY_AUTH_ASSETS_DIR` to a directory containing `offline-mfi/`. Do not commit these resources or include them in source archives. Their provenance and hashes are recorded in [third-party notices](docs/TESLAPLAY_THIRD_PARTY_NOTICES.md). Build a provisioned debug APK with:
 
-For a private provisioned build, place `offline-mfi/identity.pk8` and `offline-mfi/certificate.p7b` beneath `.local/auth-assets/` or the directory selected by `WHEELPLAY_AUTH_ASSETS_DIR`, then run `./gradlew :mobile:assembleProvisionedDebug` to verify the packaged files. Keep these resources out of Git and public APKs.
+```sh
+./gradlew :mobile:assembleProvisionedDebug
+```
 
-Run the Android checks used by CI:
+This task verifies that both resources are complete and match the APK contents. Output is `mobile/build/outputs/apk/debug/mobile-debug.apk`, version `0.1.1`, application ID `io.github.cany7.teslaplay.debug`. `assembleDebug` is useful for compilation checks, but a build without these resources is not a usable CarPlay delivery. There is no post-install resource import UI.
+
+The new application ID installs as a separate app and cannot replace `moe.feng.wheelplay.debug`. Settings, valid certificates, and pairing data do not transfer automatically. An ordinary settings backup is not a complete migration. Retain old data until the new app is verified, and do not let both apps occupy the VPN entrance and service ports simultaneously.
+
+Run checks relevant to your changes:
 
 ```sh
 ./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest \
-  :common:assembleDebugAndroidTest :mobile:lintDebug :mobile:assembleDebug
-```
-
-The instrumented test APK is built by this command; CI separately runs browser-page tests on Android 9 and Android 16 emulators. For browser-side checks and the desktop demo:
-
-```sh
+  :common:assembleDebugAndroidTest :mobile:lintDebug
 npm ci
 npm test
 npm run check
-npm run demo
 ```
 
-The demo runs at `http://localhost:8081` with pairing code `123456` and synthetic video. It is a development fixture; the actual phone connection and LAN server run in the Android app.
+`assembleDebugAndroidTest` only compiles the instrumented test APK and does not establish device validation. Run `npm run demo` for a synthetic desktop fixture at `http://localhost:8081` with pairing code `123456`; this fixture does not connect a real phone.
 
-### Product website
+## Documentation and origins
 
-The Astro website in [`website/`](website/README.md) has independent dependencies. Use Node.js 24 LTS; no Android SDK is needed.
+- [Reused sources and commits](docs/UPSTREAM.md)
+- [Third-party and artwork notices](docs/TESLAPLAY_THIRD_PARTY_NOTICES.md)
+- [Icon source and exports](docs/APP_ICON.md)
 
-```sh
-npm ci --prefix website
-npm run site:dev
-```
+`mobile/` packages the app, `common/` contains the host UI, web service, and projection sources, and `shared/` contains protocol components and shared resources. `website/` retains the separate website code; it is not a confirmed deployed TeslaPlay download service. Historical implementation documents retain upstream context; this README describes the current product flow.
 
-To validate and build:
-
-```sh
-npm run site:check
-npm run site:build
-npm run site:test
-```
-
-The static output is `website/dist/`. Chinese and English documentation lives in Markdown. Cloudflare Workers or Pages Functions handle `/download` through a shared cached GitHub artifact resolver; Astro's development server does not run that endpoint. See the [website guide](website/README.md) for deployment configuration.
-
-## Repository and documentation
-
-| Path | Contents |
-| --- | --- |
-| [`mobile/`](mobile/) | Android application entry point and packaging |
-| [`common/`](common/) | Host UI, Compose settings, LAN server, browser assets, projection sources, and native WebRTC bridge |
-| [`shared/`](shared/) | CarPlay / AirPlay, Android Auto, and VNC protocol components and shared resources |
-| [`website/`](website/) | Astro product website and Cloudflare download endpoint |
-| [`scripts/`](scripts/), [`test/`](test/) | Desktop fixtures and browser / repository checks |
-| [`docs/`](docs/README.md) | Implementation guides, validation notes, and retained upstream documentation |
-
-For deeper troubleshooting, see [projection sources](docs/PROJECTION_IMPLEMENTATION.md), [WebRTC recovery](docs/WEBRTC_RECOVERY.md), [image streaming](docs/IMAGE_STREAM.md), [rendering modes](docs/MEDIA_PRESENTATION.md), and [media controls](docs/MEDIA_SESSION.md). Most implementation guides are in Chinese. Browser diagnostics are exposed through `window.wheelplayStats`; their per-stage metrics do not measure end-to-end latency.
-
-## Origins and licensing
-
-WheelPlay is based on **DiPlay / xcertplay** and retains the upstream licenses and notices. See [LICENSE](LICENSE), the [upstream notes](docs/UPSTREAM.md), and [third-party notices](docs/upstream/THIRD_PARTY_NOTICES.md); third-party components and assets remain subject to their respective terms. Native WebRTC dependencies have [separate license notices](common/src/main/assets/webrtc-licenses.txt), also distributed in the APK.
+TeslaPlay reuses WheelPlay, DiPlay / xcertplay, DiPlay-tesla, DashPlay, and other projects, retaining their authors and applicable licenses. See [LICENSE](LICENSE), [upstream third-party notices](docs/upstream/THIRD_PARTY_NOTICES.md), and About → License in the app. Code licenses do not relicense authentication resources or Tesla trademarks and images. This is not an official Tesla product.
