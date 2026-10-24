@@ -79,6 +79,7 @@ class AirPlaySession(
     private var pendingNightMode: Boolean? = null
     private val firstTouchSendLogged = AtomicBoolean(false)
     private val touchSendFailureLogged = AtomicBoolean(false)
+    private val touchSlots = AirPlayTouchSlots(2)
     private val ntp = NtpClock()
     private var keepAliveSocket: DatagramSocket? = null
     private var keepAliveThread: Thread? = null
@@ -152,8 +153,8 @@ class AirPlaySession(
         }
     }
 
-    fun sendTouch(contacts: List<AirPlayContact>): Boolean {
-        val scaled = contacts.map {
+    @Synchronized fun sendTouch(contacts: List<AirPlayContact>): Boolean {
+        val scaled = touchSlots.assign(contacts).map {
             it.copy(x = it.x * config.main.widthPixels, y = it.y * config.main.heightPixels)
         }
         val report = AirPlayHid.touchReport(scaled)
@@ -721,7 +722,7 @@ class AirPlaySession(
     }
 
     private companion object {
-        const val TAG = "xcertplay-usb"
+        const val TAG = "teslaplay-usb"
         const val PLIST_CONTENT_TYPE = "application/x-apple-binary-plist"
         const val PAIRING_CONTENT_TYPE = "application/pairing+tlv8"
         const val OCTET_CONTENT_TYPE = "application/octet-stream"

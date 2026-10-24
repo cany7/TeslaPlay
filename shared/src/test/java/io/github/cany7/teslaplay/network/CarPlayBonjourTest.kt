@@ -8,6 +8,27 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class CarPlayBonjourTest {
+    @Test fun localNamesAreCachedForEachInterfaceWithoutReverseDns() {
+        val addresses = listOf(
+            java.net.InetAddress.getByAddress(byteArrayOf(192.toByte(), 168.toByte(), 43, 1)),
+            java.net.InetAddress.getByAddress(byteArrayOf(10, 0, 0, 1)),
+        )
+        for (address in addresses) {
+            val named = CarPlayBonjourProtocol.namedAddress(address, "carplay-local")
+            assertEquals("carplay-local", named.hostName)
+            org.junit.Assert.assertArrayEquals(address.address, named.address)
+        }
+    }
+
+    @Test fun cachedIpv6NameKeepsItsInterfaceScope() {
+        val bytes = byteArrayOf(0xfe.toByte(), 0x80.toByte()) + ByteArray(13) + byteArrayOf(2)
+        val address = java.net.Inet6Address.getByAddress(null, bytes, 7)
+        val named = CarPlayBonjourProtocol.namedAddress(address, "carplay-local") as java.net.Inet6Address
+        assertEquals("carplay-local", named.hostName)
+        assertEquals(7, named.scopeId)
+        org.junit.Assert.assertArrayEquals(bytes, named.address)
+    }
+
     @Test fun discoveryDiagnosticsKeepOutcomeWithoutPhoneIdentifiers() {
         val endpoint = CarPlayBonjourEndpoint("Private phone", "192.168.43.25", 7000, "AA:BB:CC:DD:EE:FF")
         assertEquals("control resolved family=IPv4 port=7000", CarPlayBonjourEvent.Resolved(endpoint).diagnosticSummary())
@@ -19,7 +40,7 @@ class CarPlayBonjourTest {
         assertFalse(failed.contains("Private phone"))
     }
     private val config = AirPlayConfig(
-        deviceName = "xcertplay",
+        deviceName = "teslaplay",
         deviceId = "02:00:00:00:00:02",
         btMac = "02:00:00:00:00:02",
         sourceVersion = "366.0",

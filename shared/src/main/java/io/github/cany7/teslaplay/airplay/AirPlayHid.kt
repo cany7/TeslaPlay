@@ -24,23 +24,23 @@ object AirPlayHid {
     private const val BYTES_PER_FINGER = 6
 
     fun touchHidDevice(xMax: Int, yMax: Int, displayUuid: String): Map<String, Any?> =
-        hidDeviceEntry(TOUCH_HID_UID, "xcertplay Touchscreen", multitouchDescriptor(xMax, yMax), displayUuid)
+        hidDeviceEntry(TOUCH_HID_UID, "teslaplay Touchscreen", multitouchDescriptor(xMax, yMax), displayUuid)
 
     fun knobHidDevice(displayUuid: String): Map<String, Any?> =
-        hidDeviceEntry(KNOB_HID_UID, "xcertplay Knob", knobDescriptor, displayUuid)
+        hidDeviceEntry(KNOB_HID_UID, "teslaplay Knob", knobDescriptor, displayUuid)
 
     fun mediaHidDevice(displayUuid: String): Map<String, Any?> =
-        hidDeviceEntry(MEDIA_HID_UID, "xcertplay Media", mediaDescriptor, displayUuid)
+        hidDeviceEntry(MEDIA_HID_UID, "teslaplay Media", mediaDescriptor, displayUuid)
 
     fun telephonyHidDevice(displayUuid: String): Map<String, Any?> =
-        hidDeviceEntry(TELEPHONY_HID_UID, "xcertplay Telephony", telephonyDescriptor, displayUuid)
+        hidDeviceEntry(TELEPHONY_HID_UID, "teslaplay Telephony", telephonyDescriptor, displayUuid)
 
     fun touchReport(contacts: List<AirPlayContact>): ByteArray {
         val report = ByteArray(BYTES_PER_FINGER * TOUCH_CONTACTS)
         for (slot in 0 until TOUCH_CONTACTS) {
             val offset = slot * BYTES_PER_FINGER
             report[offset] = slot.toByte()
-            val contact = contacts.getOrNull(slot) ?: continue
+            val contact = contacts.find { it.id == slot } ?: continue
             report[offset + 1] = if (contact.down) 0x01 else 0x00
             writeU16Le(report, offset + 2, Math.round(contact.x.coerceAtLeast(0.0)).toInt())
             writeU16Le(report, offset + 4, Math.round(contact.y.coerceAtLeast(0.0)).toInt())

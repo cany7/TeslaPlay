@@ -144,7 +144,7 @@ function fixture({ storedCanvas = null, storedMode = null, processorAvailable = 
       peers.at(-1).ontrack({ track: { stop() {} }, streams: [{}] });
       await new Promise(resolve => setImmediate(resolve));
     },
-    pointer(type, x = 100, surface = 'screen') { element(surface).handlers[type]({ pointerId: 1, pointerType: 'touch', clientX: x, clientY: 100, preventDefault() {} }); },
+    pointer(type, x = 100, surface = 'screen') { element(surface).handlers[type]({ type, pointerId: 1, pointerType: 'touch', clientX: x, clientY: 100, preventDefault() {} }); },
     flushMoves() { const callbacks = [...raf.values()]; raf.clear(); callbacks.forEach(fn => fn()); },
     retry() {
       const [id, timer] = [...timers].find(([, t]) => t.delay === 10);
@@ -275,6 +275,33 @@ test('pending movement is cancelled at up before another down', async () => {
   const before = ws.sent.length; f.flushMoves();
   assert.equal(ws.sent.length, before);
   assert.deepEqual(ws.sent.filter(m => m.type === 'touch').map(m => m.contacts[0].down), [true, false, true]);
+});
+
+test('pointer-up uses its final coordinate and clamps a captured drag at the screen edge', async () => {
+  const f = fixture(), ws = await f.connect(); f.frame(ws);
+  f.pointer('pointerdown', 100); f.pointer('pointerup', 200);
+  let contacts = ws.sent.filter(message => message.type === 'touch').at(-1).contacts;
+  assert.equal(contacts[0].x, 200 / 1280);
+  assert.equal(contacts[0].down, false);
+  f.pointer('pointerdown', 100); f.pointer('pointerup', -200);
+  contacts = ws.sent.filter(message => message.type === 'touch').at(-1).contacts;
+  assert.equal(contacts[0].x, 0);
+  assert.equal(contacts[0].down, false);
+  const before = ws.sent.length;
+  f.pointer('pointerdown', -200); f.pointer('pointerup', 100);
+  assert.equal(ws.sent.length, before, 'An outside press never becomes a contact on release');
+});
+
+test('pointer cancellation and capture loss retain the last valid position', async () => {
+  for (const type of ['pointercancel', 'lostpointercapture']) {
+    const f = fixture(), ws = await f.connect(); f.frame(ws);
+    f.pointer('pointerdown', 100); f.pointer('pointermove', 200); f.pointer(type, 0);
+    const contact = ws.sent.filter(message => message.type === 'touch').at(-1).contacts[0];
+    assert.equal(contact.x, 200 / 1280);
+    assert.equal(contact.down, false);
+    const before = ws.sent.length; f.flushMoves();
+    assert.equal(ws.sent.length, before);
+  }
 });
 
 test('renderer defaults, legacy migration, new preference precedence and storage errors', async () => {

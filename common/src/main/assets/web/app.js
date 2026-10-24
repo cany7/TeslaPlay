@@ -1356,6 +1356,12 @@ if (typeof document !== 'undefined') {
   function up(event) {
     const p = pointers.get(event.pointerId); if (!p) return;
     cancelMove();
+    // Pointer-up can carry a final position after the last move. Cancellation has
+    // no reliable position, so keep the last valid coordinate for that path.
+    if (event.type === 'pointerup') {
+      const point = mapPoint(event.clientX, event.clientY, surface.getBoundingClientRect(), width, height, true);
+      if (point && Number.isFinite(point.x) && Number.isFinite(point.y)) Object.assign(p, point);
+    }
     pointers.delete(event.pointerId);
     send({ type: 'touch', contacts: [...contacts(), { ...p, down: false }] });
   }

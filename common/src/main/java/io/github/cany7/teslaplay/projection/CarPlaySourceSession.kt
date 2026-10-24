@@ -25,10 +25,8 @@ internal class CarPlaySourceSession(private val status: () -> String?) : Project
     override val mediaOutput get() = sink
     override fun touch(contacts: List<ProjectionContact>): Boolean {
         if (contacts.any { it.id !in 0..1 }) return false
-        // The CarPlay HID device has fixed slots, even when the first finger is released.
-        return controller?.sendTouch((0..1).map { id ->
-            contacts.find { it.id == id } ?: ProjectionContact(id, 0.0, 0.0, false)
-        }) ?: false
+        // AirPlayTouchSlots retains the last coordinate for absent/released contacts.
+        return controller?.sendTouch(contacts) ?: false
     }
     override fun setNightMode(night: Boolean) =
         if (controller?.setNightMode(night) == true) ProjectionCommandResult.SENT else ProjectionCommandResult.UNAVAILABLE

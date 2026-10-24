@@ -21,6 +21,20 @@ import org.robolectric.util.ReflectionHelpers.ClassParameter
 class NcmUsbBridgeWriteTimeoutTest {
     @Before fun reset() { NcmWriteReplay.reset() }
 
+    @Test fun readinessRequiresAnAcceptedFrameAndKeepsItsFirstTimestamp() {
+        NcmWriteReplay.results.addAll(listOf(-1, NcmWriteReplay.ALL, NcmWriteReplay.ALL))
+        withBridge { ncm ->
+            ncm.send(frame, 2_000)
+            org.junit.Assert.assertNull(ncm.linkOpenedAtNanos)
+            ncm.send(frame, 2_000)
+            val opened = ncm.linkOpenedAtNanos
+            org.junit.Assert.assertNotNull(opened)
+            ncm.send(frame, 2_000)
+            assertEquals(opened, ncm.linkOpenedAtNanos)
+            org.junit.Assert.assertFalse(ncm.hasReceivedTraffic)
+        }
+    }
+
     @Test fun framesBeforeThePhoneTakesOneUseTheShortTimeoutThenTheCallers() {
         NcmWriteReplay.results.addAll(listOf(-1, -1, NcmWriteReplay.ALL, NcmWriteReplay.ALL))
         val diagnostics = withBridge { ncm -> repeat(4) { ncm.send(frame, 2_000) } }

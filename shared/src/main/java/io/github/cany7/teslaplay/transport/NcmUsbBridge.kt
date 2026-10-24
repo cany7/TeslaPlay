@@ -40,6 +40,10 @@ class NcmUsbBridge internal constructor(
     private var loggedWriteTimeout = false
     private var bulkOutAccepted = false
     private var notReadyFrames = 0
+    /** First successful USB OUT transfer; NAKed writes do not establish link readiness. */
+    @Volatile var linkOpenedAtNanos: Long? = null
+        private set
+    private val traffic = NcmTrafficCounter()
     private val frames = ArrayDeque<ByteArray>()
     private var queuedBytes = 0
     private var buffered = ByteArray(0)
@@ -100,6 +104,7 @@ class NcmUsbBridge internal constructor(
         }
         if (!bulkOutAccepted) {
             bulkOutAccepted = true
+            linkOpenedAtNanos = System.nanoTime()
             runCatching { onDiagnostic("NCM bulk-out ready after $notReadyFrames dropped frames") }
         }
         if (transferred != block.size) {
@@ -107,11 +112,18 @@ class NcmUsbBridge internal constructor(
                 "NCM write transferred $transferred of ${block.size} bytes",
             )
         }
+        traffic.sent()
         if (loggedWriteTimeout) {
             loggedWriteTimeout = false
             Log.i(IphoneCarPlayConfiguration.TAG, "ncm bulk-out became ready")
         }
     }
+
+    fun trafficSummary(airPlayPort: Int?): String = traffic.summary(airPlayPort)
+
+    val hasReceivedTraffic: Boolean get() = traffic.hasReceivedTraffic
+
+    fun connectionAttemptSince(port: Int, sinceNanos: Long): Boolean = traffic.connectionAttemptSince(port, sinceNanos)
 
     /**
      * Returns the next complete Ethernet frame, or null when [timeoutMillis] elapses without one.
@@ -301,6 +313,7 @@ class NcmUsbBridge internal constructor(
     private fun pollFrame(): ByteArray {
         val frame = frames.removeFirst()
         queuedBytes -= frame.size
+        traffic.received(frame)
         return frame
     }
 

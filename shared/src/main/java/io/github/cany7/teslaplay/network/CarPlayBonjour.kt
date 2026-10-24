@@ -63,6 +63,14 @@ fun CarPlayBonjourEvent.diagnosticSummary(): String = when (this) {
 
 /** Pure protocol values shared by the Android runtime and JVM tests. */
 object CarPlayBonjourProtocol {
+    /** Avoid JmDNS reverse lookup of our own interface address; retain IPv6 routing scope. */
+    internal fun namedAddress(address: InetAddress, hostName: String): InetAddress =
+        if (address is Inet6Address) {
+            Inet6Address.getByAddress(hostName, address.address, address.scopeId)
+        } else {
+            InetAddress.getByAddress(hostName, address.address)
+        }
+
     fun airPlayTxtRecords(
         config: AirPlayConfig,
         identity: AirPlayIdentity,
@@ -240,7 +248,8 @@ class CarPlayBonjour(
                     val address = requireNotNull(localAdvertisedAddress) {
                         "Interface mDNS requires a local advertised address"
                     }
-                    val dns = JmDNS.create(address, "carplay-${config.deviceId.replace(":", "")}")
+                    val hostName = "carplay-${config.deviceId.replace(":", "")}"
+                    val dns = JmDNS.create(CarPlayBonjourProtocol.namedAddress(address, hostName), hostName)
                     interfaceMdns = dns
                     dns.addServiceListener("$CARPLAY_CONTROL_SERVICE_TYPE.local.", interfaceListener)
                     dns.registerService(ServiceInfo.create(
@@ -565,7 +574,7 @@ class CarPlayBonjour(
     }
 
     private companion object {
-        const val TAG = "xcertplay-bonjour"
+        const val TAG = "teslaplay-bonjour"
         const val WORKER_NAME = "carplay-bonjour"
         const val AIRPLAY_SERVICE_TYPE = "_airplay._tcp"
         const val CARPLAY_CONTROL_SERVICE_TYPE = "_carplay-ctrl._tcp"

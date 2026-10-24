@@ -223,6 +223,7 @@ class CarPlayController(
     @Volatile private var mux: Iap2UsbMuxHost? = null
     @Volatile private var csm: Iap2Session? = null
     @Volatile private var activeSession: AirPlaySession? = null
+    @Volatile private var wiredStartWatchdog: WiredStartWatchdog? = null
     @Volatile private var hotspot: WirelessHotspotManager? = null
     @Volatile private var bonjour: CarPlayBonjour? = null
     @Volatile private var bluetoothSocket: BluetoothSocket? = null
@@ -266,6 +267,7 @@ class CarPlayController(
 
     private val sessionListener = object : AirPlaySessionListener {
         override fun onSessionActive(session: AirPlaySession) {
+            if (config.transport == CarPlayTransport.WIRED) wiredStartWatchdog?.sessionActive()
             if (activeSession !== session) BydNavigationOutputs.start(appContext)
             activeSession = session
             mediaState.resume()
@@ -407,6 +409,7 @@ class CarPlayController(
             closed = true
         }
         mediaState.close()
+        wiredStartWatchdog?.terminate()
         BydNavigationOutputs.endNow()
         closeReceivers()
         availabilityPollGeneration.incrementAndGet()
@@ -445,7 +448,7 @@ class CarPlayController(
                     teardownComplete.countDown()
                 }
             },
-            "xcertplay-controller-teardown",
+            "teslaplay-controller-teardown",
         ).apply {
             isDaemon = true
             start()
@@ -830,7 +833,7 @@ class CarPlayController(
                     }
                 } else wirelessRestartPending.set(false)
             },
-            "xcertplay-wireless-restart",
+            "teslaplay-wireless-restart",
         ).apply {
             isDaemon = true
             start()
@@ -1284,7 +1287,7 @@ class CarPlayController(
                 closeBluetoothBootstrapTransport(generation)
                 if (!isStaleWirelessRun(generation)) onStatus(CarPlayStatus.WirelessActive)
             },
-            "xcertplay-wireless-handoff",
+            "teslaplay-wireless-handoff",
         ).apply {
             isDaemon = true
             start()
@@ -1331,7 +1334,7 @@ class CarPlayController(
                         }
                         recoverWireless(generation, IOException("Wireless CarPlay handoff timed out waiting for tunnel iAP2"))
                     },
-                    "xcertplay-wireless-handoff-timeout",
+                    "teslaplay-wireless-handoff-timeout",
                 ).apply {
                     isDaemon = true
                     start()
@@ -1357,6 +1360,8 @@ class CarPlayController(
     }
 
     private fun startIphone() {
+        wiredStartWatchdog?.terminate()
+        wiredStartWatchdog = null
         availabilityPollGeneration.incrementAndGet()
         phase = Phase.IPHONE
         reenumerationAttempts = 0
@@ -1548,6 +1553,7 @@ class CarPlayController(
     private fun runStack(usbSession: Iap2UsbSession, ncm: NcmUsbBridge) {
         phase = Phase.CONTROL
         var ncmOwnedLocally = true
+        var attemptWatchdog: WiredStartWatchdog? = null
         try {
             if (closed) return
             val mux = Iap2UsbMuxHost.open(usbSession, onDiagnostic = ::debugLog)
@@ -1661,6 +1667,30 @@ class CarPlayController(
                 deviceIdentifier = ncmHostMac.macString(),
             )
             onStatus(CarPlayStatus.RunningControl)
+            var startSentAtNanos: Long? = null
+            lateinit var watchdog: WiredStartWatchdog
+            watchdog = WiredStartWatchdog(
+                schedule = { delay, action ->
+                    val task = Runnable { action() }
+                    mainHandler.postDelayed(task, delay)
+                    val cancel: () -> Unit = { mainHandler.removeCallbacks(task) }
+                    cancel
+                },
+                onTimeout = {
+                    if (!closed && phase == Phase.CONTROL && this.csm === csm &&
+                        wiredStartWatchdog === watchdog && activeSession == null) {
+                        debugLog("wired start timed out; NCM ${ncm.trafficSummary(endpoint.airPlayPort)}")
+                        // The one-repeat budget is exhausted. Keep the existing manual reconnect
+                        // action instead of restarting a new controller with a fresh retry budget.
+                        fail(IphoneUsbException.TimedOut("The iPhone did not open CarPlay over USB in time; reconnect to try again"),
+                            automaticRetry = false)
+                    }
+                },
+            )
+            attemptWatchdog = watchdog
+            wiredStartWatchdog?.terminate()
+            wiredStartWatchdog = watchdog
+            if (activeSession != null) watchdog.sessionActive()
             debugLog("wired iAP2 control starting")
             val result = Iap2WiredControlClient(csm, Iap2MfiAuthenticationClient(mfi)).run(
                 identification = config.identification,
@@ -1670,7 +1700,31 @@ class CarPlayController(
                 locationProvider = locationProvider,
                 onReady = { mediaState.bind(csm) },
                 onIncoming = { frame -> onControlFrame(csm, frame) },
-                onProgress = { message -> debugLog("wired $message") },
+                onProgress = { message ->
+                    if (message == Iap2WiredControlClient.START_SESSION_AGAIN_PROGRESS) {
+                        watchdog.startSessionSentAgain()
+                    } else if (message == Iap2WiredControlClient.START_SESSION_PROGRESS) {
+                        if (startSentAtNanos == null) startSentAtNanos = System.nanoTime()
+                        watchdog.startSessionSent()
+                    }
+                    debugLog("wired $message")
+                },
+                startSessionAgain = {
+                    if (closed || phase != Phase.CONTROL || this.csm !== csm || wiredStartWatchdog !== watchdog) {
+                        Iap2WiredControlClient.StartAgain.DONE
+                    } else {
+                        val opened = ncm.linkOpenedAtNanos
+                        WiredStartAgain.decide(
+                            nowNanos = System.nanoTime(),
+                            startSentAtNanos = startSentAtNanos ?: System.nanoTime(),
+                            linkOpenedAtNanos = opened,
+                            sessionActive = activeSession != null,
+                            connectionAttemptSinceLinkOpened =
+                                opened != null && ncm.connectionAttemptSince(endpoint.airPlayPort, opened),
+                            receivedTraffic = ncm.hasReceivedTraffic,
+                        )
+                    }
+                },
             )
             mediaState.disconnected(csm)
             onStatus(
@@ -1685,6 +1739,8 @@ class CarPlayController(
             if (!ncmOwnedLocally) vpnService?.detach()
             fail(error)
         } finally {
+            attemptWatchdog?.terminate()
+            if (wiredStartWatchdog === attemptWatchdog) wiredStartWatchdog = null
             if (ncmOwnedLocally) ncm.close()
         }
     }
@@ -2079,6 +2135,8 @@ class CarPlayController(
 
     private fun fail(error: Throwable, automaticRetry: Boolean = true) {
         if (closed) return
+        wiredStartWatchdog?.terminate()
+        wiredStartWatchdog = null
         mediaState.disconnected()
         onStatus(CarPlayStatus.Failed(error.message ?: error.javaClass.simpleName,
             generateSequence(error) { it.cause }.any { it is io.github.cany7.teslaplay.network.P2pResetRequiredException },
