@@ -177,6 +177,14 @@ test('HTTPS setup uses the configured port and strips pairing data, including IP
   }
 });
 
+test('HTTPS setup replaces an IP entry with the certificate domain', async () => {
+  const f = fixture({ href: 'http://100.96.0.1:8080/?code=123456#old',
+    tls: { available: true, hostname: 'tesla-play.duckdns.org', port: 8443 } });
+  f.element('secure-setup').open = true;
+  await f.element('secure-setup').handlers.toggle();
+  assert.equal(f.element('https-entry').href, 'https://tesla-play.duckdns.org:8443/');
+});
+
 test('unavailable HTTPS or invalid port withdraws a previously displayed link', async () => {
   for (const tls of [{ available: false, port: 9443 }, { available: true, port: 0 }, { available: true, port: '9443' }]) {
     const f = fixture({ tls });

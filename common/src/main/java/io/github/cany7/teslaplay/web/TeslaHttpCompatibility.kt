@@ -65,32 +65,41 @@ internal object TeslaHttpCompatibility {
     fun config(context: Context): TeslaHttpConfig {
         WebListenSettings.migrate(context)
         val prefs = preferences(context)
+        // Existing installs used an optional 6.6.6.6 alias. Routing now belongs to the Web
+        // service, and the VPN endpoint is fixed so DNS and listener URLs stay aligned.
+        if (!prefs.getBoolean("fixed_vpn_entry_migrated", false)) {
+            check(prefs.edit()
+                .putBoolean("enabled", true)
+                .putString("vpn_address", TeslaHttpConfig.DEFAULT_VPN_ADDRESS)
+                .putBoolean("fixed_vpn_entry_migrated", true)
+                .commit())
+        }
         return runCatching {
                 TeslaHttpConfig(
-                    prefs.getBoolean("enabled", false),
+                    true,
                     prefs.getString("address", TeslaHttpConfig.DEFAULT_ADDRESS)!!,
                     prefs.getInt("http_mapping_port", 80),
                     prefs.getInt("https_mapping_port", 443),
-                    TeslaHttpMode.valueOf(prefs.getString("mode", TeslaHttpMode.ROOT.name)!!),
-                    prefs.getString("vpn_address", TeslaHttpConfig.DEFAULT_VPN_ADDRESS)!!,
+                    TeslaHttpMode.valueOf(prefs.getString("mode", TeslaHttpMode.VPN.name)!!),
+                    TeslaHttpConfig.DEFAULT_VPN_ADDRESS,
                 )
             }
-            .getOrDefault(TeslaHttpConfig())
+            .getOrDefault(TeslaHttpConfig(enabled = false))
     }
 
     fun save(context: Context, config: TeslaHttpConfig) {
         val previous = config(context)
         preferences(context)
             .edit()
-            .putBoolean("enabled", config.enabled)
+            .putBoolean("enabled", true)
             .putString("address", config.address)
             .putInt("http_mapping_port", config.httpMappingPort)
             .putInt("https_mapping_port", config.httpsMappingPort)
             .putString("mode", config.mode.name)
-            .putString("vpn_address", config.vpnAddress)
+            .putString("vpn_address", TeslaHttpConfig.DEFAULT_VPN_ADDRESS)
             .apply()
         refresh(retry = true)
-        if (previous.accessAddress != config.accessAddress)
+        if (previous.accessAddress != config(context).accessAddress)
             WebSession.refreshGeneratedCertificate(context)
     }
 
@@ -166,7 +175,7 @@ internal object TeslaHttpCompatibility {
                                 context.getString(it.mode.labelRes),
                             ) ?: "")
                         },
-                mode = config?.mode ?: TeslaHttpMode.ROOT,
+                mode = config?.mode ?: TeslaHttpMode.VPN,
             )
         if (retry) main.post { vpn.retry() }
         worker.execute {

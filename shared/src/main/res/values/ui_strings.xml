@@ -570,6 +570,8 @@
     <string name="ui_bring_teslaplay_to_the_foreground_on_android_then_tap">Bring TeslaPlay to the foreground on Android, then tap Connect iPhone</string>
     <string name="ui_teslaplay_tesla_experimental">TeslaPlay</string>
     <string name="web_teslaplay_head_unit_display">TeslaPlay</string>
+    <string name="ui_tesla_access_off">Tesla access is off</string>
+    <string name="ui_secure_entry">HTTPS · %1$s</string>
     <string name="web_diag_title">Live diagnostics</string>
     <string name="web_diag_unknown">Unknown</string>
     <string name="web_diag_service">Service</string>

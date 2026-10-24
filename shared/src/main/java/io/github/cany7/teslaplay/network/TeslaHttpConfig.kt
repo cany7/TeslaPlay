@@ -8,13 +8,13 @@ enum class TeslaHttpMode(@param:androidx.annotation.StringRes val labelRes: Int)
     VPN(UiR.string.ui_rootless_vpn_experimental),
 }
 
-/** Two opt-in ways to expose local HTTP, without changing the hotspot's DHCP subnet. */
+/** Web-service routing without changing the hotspot's DHCP subnet. */
 data class TeslaHttpConfig(
-    val enabled: Boolean = false,
+    val enabled: Boolean = true,
     val address: String = DEFAULT_ADDRESS,
     val httpMappingPort: Int = 80,
     val httpsMappingPort: Int = 443,
-    val mode: TeslaHttpMode = TeslaHttpMode.ROOT,
+    val mode: TeslaHttpMode = TeslaHttpMode.VPN,
     val vpnAddress: String = DEFAULT_VPN_ADDRESS,
 ) {
     init {
@@ -43,7 +43,7 @@ data class TeslaHttpConfig(
 
     companion object {
         const val DEFAULT_ADDRESS = "100.96.0.1"
-        const val DEFAULT_VPN_ADDRESS = "6.6.6.6"
+        const val DEFAULT_VPN_ADDRESS = DEFAULT_ADDRESS
         const val VPN_PLACEHOLDER_ADDRESS = "192.168.229.229"
 
         // Parse literals without DNS, accepting only canonical dotted decimal notation.
@@ -85,5 +85,5 @@ data class TeslaHttpStatus(
     val downstreams: List<String> = emptyList(),
     val httpMappingPort: Int? = null,
     val httpsMappingPort: Int? = null,
-    val mode: TeslaHttpMode = TeslaHttpMode.ROOT,
+    val mode: TeslaHttpMode = TeslaHttpMode.VPN,
 )

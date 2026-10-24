@@ -201,7 +201,7 @@ class LanTlsTest {
             val fingerprint = WebSession.tls!!.fingerprint
             val code = WebSession.code
             val https = WebSession.httpsPort
-            val config = io.github.cany7.teslaplay.network.TeslaHttpConfig(enabled = true)
+            val config = io.github.cany7.teslaplay.network.TeslaHttpConfig(enabled = true, mode = io.github.cany7.teslaplay.network.TeslaHttpMode.ROOT)
             val interfaces = listOf(HttpDownstream("ap0", 12, "192.168.43.1/24"))
             val before = TeslaHttpCompatibility.plan(config, interfaces, WebSession.httpListenerPort, WebSession.httpsListenerPort, true)!!
             assertEquals(443, before.httpsMappingPort)
@@ -268,12 +268,60 @@ class LanTlsTest {
             assertEquals(port, WebListenSettings.httpsPort(context))
             assertEquals(code, WebSession.code)
             assertEquals(fingerprint, WebSession.tls!!.fingerprint)
-            assertTrue(httpsGet(port).contains("WheelPlay"))
+            assertTrue(httpsGet(port).contains("TeslaPlay"))
+            assertNull(WebSession.setHostname(context, "car.example.com"))
             val info = org.json.JSONObject(URL("http://127.0.0.1:${WebSession.httpPort}/tls.json").readText())
             assertEquals(port, info.getInt("port"))
+            assertEquals("car.example.com", info.getString("hostname"))
             WebSession.stop(); WebSession.start(context); waitForHttps()
             assertEquals(port, WebSession.httpsPort)
             assertTrue(httpsGet(port).contains("TeslaPlay"))
         } finally { WebSession.stop() }
     }
+    @Test fun duckDnsIdentityRemainsSelectedAcrossRefreshRestartAndStoppedRenewal() {
+        val context = RuntimeEnvironment.getApplication()
+        val identity = identity()
+        ManagedHttps.configure(context, "car.duckdns.org", "01234567-89ab-cdef-0123-456789abcdef", "100.96.0.1")
+        WebSession.start(context)
+        try {
+            waitForHttps()
+            LanTls.preparePem(pem(*identity.chain.toTypedArray()), pem(identity.keys.private)).use {
+                assertNull(WebSession.installCertificate(context, it, managed = true, hostname = "car.example.com"))
+            }
+            val fingerprint = WebSession.tls!!.info!!.fingerprint
+            repeat(2) { ManagedHttps.status(context); WebSession.refreshGeneratedCertificate(context) }
+            assertEquals(WebListenSettings.CertificateType.DUCKDNS, WebListenSettings.certificateType(context))
+            ManagedHttps.disable(context)
+            assertEquals(fingerprint, ManagedHttps.status(context).serving!!.fingerprint)
+            WebSession.stop(); WebSession.start(context); waitForHttps()
+            assertEquals(fingerprint, ManagedHttps.status(context).serving!!.fingerprint)
+            assertEquals(WebListenSettings.CertificateType.DUCKDNS, WebListenSettings.certificateType(context))
+            assertTrue(httpsGet(WebSession.httpsPort).contains("TeslaPlay"))
+        } finally { WebSession.stop() }
+    }
+
+    @Test fun failedLocalRestoreKeepsManagedIdentityModeAndRenewal() {
+        val context = RuntimeEnvironment.getApplication()
+        val identity = identity()
+        ManagedHttps.configure(context, "car.duckdns.org", "01234567-89ab-cdef-0123-456789abcdef", "100.96.0.1")
+        WebSession.start(context)
+        try {
+            waitForHttps()
+            LanTls.preparePem(pem(*identity.chain.toTypedArray()), pem(identity.keys.private)).use {
+                assertNull(WebSession.installCertificate(context, it, managed = true, hostname = "car.example.com"))
+            }
+            val fingerprint = WebSession.tls!!.info!!.fingerprint
+            // A conflicting new configured port fails before persisting a new identity.
+            ServerSocket(0).use { occupied ->
+                WebListenSettings.saveHttpsPort(context, occupied.localPort)
+                assertNotNull(WebSession.restoreDefaultCertificate(context))
+            }
+            assertEquals(WebListenSettings.CertificateType.DUCKDNS, WebListenSettings.certificateType(context))
+            assertTrue(ManagedHttps.config(context)!!.enabled)
+            assertEquals(fingerprint, LanTls.installedCertificate(context)!!.fingerprint)
+            assertEquals(fingerprint, ManagedHttps.status(context).serving!!.fingerprint)
+            assertTrue(httpsGet(WebSession.httpsPort).contains("TeslaPlay"))
+        } finally { WebSession.stop() }
+    }
+
 }

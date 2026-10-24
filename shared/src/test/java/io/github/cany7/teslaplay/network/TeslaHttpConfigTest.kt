@@ -4,6 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class TeslaHttpConfigTest {
+    @Test fun teslaNetworkDefaultsToEnabledVpnWithTheFixedEntry() {
+        val config = TeslaHttpConfig()
+        assertTrue(config.enabled)
+        assertEquals(TeslaHttpMode.VPN, config.mode)
+        assertEquals("100.96.0.1", config.accessAddress)
+    }
+
     @Test fun mappedPortsArePrivilegedDistinctPorts() {
         for (port in listOf(1, 80, 1023)) {
             val config = TeslaHttpConfig(httpMappingPort = port)

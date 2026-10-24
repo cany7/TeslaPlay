@@ -203,6 +203,7 @@
     <string name="settings_recovery_condition">僅在串流技術選擇 WebRTC 時提供。</string>
     <string name="settings_fps_description">下次連接生效。實際幀率見網頁狀態。</string>
     <string name="settings_audio_buffer_description">調整音頻緩衝。下次連接生效。</string>
+    <string name="settings_https_group">HTTPS 證書</string>
     <string name="settings_apply_saved">應用並重新連接</string>
     <string name="settings_saved_apply_help">修改會保存供下次連接使用。點擊“應用並重新連接”立即應用已保存的設置。</string>
     <string name="settings_https_ports_search">在“高級：HTTP／HTTPS 端口”中</string>

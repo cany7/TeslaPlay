@@ -45,6 +45,7 @@ class TeslaPlaySessionService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        io.github.cany7.teslaplay.web.ManagedHttps.schedule(this)
         io.github.cany7.teslaplay.projection.registerProjectionSources(this)
         if (
             io.github.cany7.teslaplay.web.TeslaHttpCompatibility.config(this).let {

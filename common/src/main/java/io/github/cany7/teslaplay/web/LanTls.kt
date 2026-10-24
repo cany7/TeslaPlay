@@ -53,7 +53,35 @@ internal object LanTls {
         val fingerprint: String,
         val custom: Boolean = false,
         val subject: String = "",
+        val info: CertificateInfo? = null,
     )
+
+    data class CertificateInfo(
+        val subject: String,
+        val issuer: String,
+        val fingerprint: String,
+        val expiresAt: Long,
+        val custom: Boolean,
+        val domains: List<String>,
+    )
+
+    private fun certificateInfo(leaf: X509Certificate, custom: Boolean) = CertificateInfo(
+        leaf.subjectX500Principal.name,
+        leaf.issuerX500Principal.name,
+        java.security.MessageDigest.getInstance("SHA-256").digest(leaf.encoded)
+            .joinToString(":") { "%02X".format(it.toInt() and 255) },
+        leaf.notAfter.time,
+        custom,
+        leaf.subjectAlternativeNames.orEmpty().filter { it.size >= 2 && it[0] == 2 }
+            .mapNotNull { it[1] as? String },
+    )
+
+    @Synchronized
+    fun installedCertificate(context: Context): CertificateInfo? = runCatching {
+        val store = KeyStore.getInstance("PKCS12")
+        customFile(context).openRead().use { store.load(it, CharArray(0)) }
+        certificateInfo(store.getCertificate("server") as X509Certificate, true)
+    }.getOrNull()
 
     class Prepared(val encoded: ByteArray, val endpoint: Endpoint) : AutoCloseable {
         override fun close() {
@@ -85,10 +113,22 @@ internal object LanTls {
 
     fun hasCustom(context: Context) = customFile(context).baseFile.exists()
 
+    /** Read the actual installed leaf, not a remembered issuance date. */
+    @Synchronized
+    fun customExpiry(context: Context, domain: String): Long? = runCatching {
+        val store = KeyStore.getInstance("PKCS12")
+        customFile(context).openRead().use { store.load(it, CharArray(0)) }
+        val leaf = store.getCertificate("server") as X509Certificate
+        if (leaf.subjectAlternativeNames.orEmpty().none {
+                it.size >= 2 && it[0] == 2 && (it[1] as? String)?.equals(domain, true) == true
+            }) null else leaf.notAfter.time
+    }.getOrNull()
+
     @Synchronized
     fun create(context: Context, addresses: List<String>, hostname: String = ""): Endpoint {
         val file = customFile(context)
-        if (file.baseFile.exists()) {
+        val type = WebListenSettings.certificateType(context)
+        if (type != WebListenSettings.CertificateType.DEFAULT) {
             val store = KeyStore.getInstance("PKCS12")
             file.openRead().use { store.load(it, CharArray(0)) }
             return endpoint(store, "server", true)
@@ -161,6 +201,7 @@ internal object LanTls {
             fingerprint,
             custom,
             chain.first().subjectX500Principal.name,
+            certificateInfo(chain.first(), custom),
         )
     }
 
@@ -343,6 +384,27 @@ internal object LanTls {
             file.failWrite(output)
             throw error
         }
+    }
+
+    /** Restore the previous private identity if committing its mode or renewal state fails. */
+    @Synchronized
+    fun replaceCustom(context: Context, prepared: Prepared?, commitMetadata: () -> Unit) {
+        val previous = customFile(context).takeIf { it.baseFile.exists() }?.openRead()?.use { it.readBytes() }
+        try {
+            if (prepared == null) clearCustom(context) else saveCustom(context, prepared)
+            commitMetadata()
+        } catch (failure: Exception) {
+            try {
+                if (previous == null) clearCustom(context)
+                else {
+                    val target = customFile(context)
+                    val output = target.startWrite()
+                    try { output.write(previous); target.finishWrite(output) }
+                    catch (restore: Exception) { target.failWrite(output); throw restore }
+                }
+            } catch (restore: Exception) { failure.addSuppressed(restore) }
+            throw failure
+        } finally { previous?.fill(0) }
     }
 
     @Synchronized

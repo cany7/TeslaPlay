@@ -92,7 +92,7 @@ class WebListenSettingsTest {
 
     @Test fun rootPlanRequiresAuthorizationAndEnabledHttpsForItsHttpsMapping() {
         val interfaces = listOf(HttpDownstream("ap0", 7, "192.168.43.1/24"))
-        val config = TeslaHttpConfig(enabled = true)
+        val config = TeslaHttpConfig(enabled = true, mode = io.github.cany7.teslaplay.network.TeslaHttpMode.ROOT)
         assertNull(TeslaHttpCompatibility.plan(config, interfaces, 8080, 8443, false))
         assertNull(TeslaHttpCompatibility.plan(config.copy(enabled = false), interfaces, 8080, 8443, true))
         val full = TeslaHttpCompatibility.plan(config, interfaces, 8080, 8443, true)!!

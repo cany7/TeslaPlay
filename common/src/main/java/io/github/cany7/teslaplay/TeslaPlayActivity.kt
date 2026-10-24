@@ -13,6 +13,7 @@ import io.github.cany7.teslaplay.i18n.*
 
 import android.Manifest
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import io.github.cany7.teslaplay.web.WebListenSettings
 import io.github.cany7.teslaplay.web.WebSession
 import io.github.cany7.teslaplay.web.RootAccess
 import io.github.cany7.teslaplay.web.LanAddresses
@@ -78,7 +79,8 @@ class TeslaPlayActivity : AppCompatActivity() {
         val requested = awaitingTeslaVpnConsent
         awaitingTeslaVpnConsent = false
         if (requested && TeslaHttpCompatibility.config(this).mode == TeslaHttpMode.VPN) {
-            applyTeslaHttpEnabled(result.resultCode == RESULT_OK)
+            TeslaHttpCompatibility.retry()
+            render(); refreshService()
             if (result.resultCode != RESULT_OK) toast(getString(UiR.string.ui_vpn_permission_canceled_rootless_mode_remains_disabled))
         }
     }
@@ -106,7 +108,7 @@ class TeslaPlayActivity : AppCompatActivity() {
             configureWeb(getString(UiR.string.ui_https_certificate_imported_reconnect_your_browser)) {
                 try {
                     val key = readCertificateFile(uri)
-                    try { LanTls.preparePem(certificate, key, password).use { WebSession.installCertificate(this, it) } }
+                    try { LanTls.preparePem(certificate, key, password).use { WebSession.installCertificate(this, it, type = WebListenSettings.CertificateType.PEM) } }
                     finally { key.fill(0) }
                 } finally { certificate.fill(0); password.fill('\u0000') }
             }
@@ -316,6 +318,7 @@ class TeslaPlayActivity : AppCompatActivity() {
         if (!initialLaunch) { refreshPhone(); refreshService() }
         if (initialLaunch) {
             initialLaunch = false
+            if (TeslaHttpCompatibility.config(this).mode == TeslaHttpMode.VPN) setTeslaHttpEnabled(true)
             if (setupError == null && !TeslaPlayBootstrap.importing && selectedPrivateKey == null &&
                 intent.action != Intent.ACTION_SEND && intent.action != Intent.ACTION_VIEW &&
                 !projectionSessions.hasSession() &&
@@ -406,7 +409,7 @@ class TeslaPlayActivity : AppCompatActivity() {
         }
         val compatibility = TeslaHttpCompatibility.status
         val teslaConfig = TeslaHttpCompatibility.config(this)
-        val teslaMessage = if (!teslaConfig.enabled) getString(UiR.string.ui_disabled)
+        val teslaMessage = if (!teslaConfig.enabled) getString(UiR.string.ui_tesla_access_off)
             else if (!WebSession.running && setupError != null) getString(UiR.string.ui_starts_after_authentication_resources_are_imported)
             else compatibility.error ?: compatibility.address?.let {
                 if (compatibility.mode == TeslaHttpMode.VPN) getString(UiR.string.status_rootless_address_configured, it)
@@ -567,11 +570,18 @@ class TeslaPlayActivity : AppCompatActivity() {
     private fun refreshService() {
         val addresses = if (WebSession.running && WebSession.error == null) WebSession.addresses(this) else emptyList()
         val primary = addresses.firstOrNull()
-        val addressText = WebSession.error ?: if (WebSession.running) primary?.url
+        val secureEntry = if (WebSession.httpsReady && WebSession.tls?.custom == true &&
+            WebListenSettings.certificateType(this) == WebListenSettings.CertificateType.DUCKDNS) {
+            WebListenSettings.hostname(this).takeIf { it.isNotBlank() }?.let { host ->
+                val port = WebSession.httpsPortFor(this, primary?.let { "${it.hostname.ifEmpty { it.address }}:${it.port}" })
+                "https://$host:$port/"
+            }
+        } else null
+        val addressText = WebSession.error ?: if (WebSession.running) secureEntry ?: primary?.url
                 ?: getString(UiR.string.ui_no_local_network_address_found_connect_to_wi_fi) else getString(UiR.string.ui_starting_service)
         if (webAddress?.text?.toString() != addressText) webAddress?.text = addressText
-        webInterface?.text = primary?.let { it.description(this) + if (it.hostname.isNotEmpty()) getString(UiR.string.address_direct_ip, it.ipUrl) else "" }.orEmpty()
-        webInterface?.visibility = if (primary == null) View.GONE else View.VISIBLE
+        webInterface?.text = if (secureEntry != null) getString(UiR.string.ui_secure_entry, "DuckDNS") else primary?.let { it.description(this) + if (it.hostname.isNotEmpty()) getString(UiR.string.address_direct_ip, it.ipUrl) else "" }.orEmpty()
+        webInterface?.visibility = if (primary == null && secureEntry == null) View.GONE else View.VISIBLE
         if (displayedAddresses != addresses) {
             displayedAddresses = addresses
             otherAddresses?.removeAllViews()
@@ -960,7 +970,7 @@ class TeslaPlayActivity : AppCompatActivity() {
                             textInput(getString(UiR.string.ui_private_key_password_leave_blank_to_use_file_password), "", true, onCancel = ::clear) { value ->
                                 val keyPassword = if (value.isEmpty()) password.copyOf() else value.toCharArray()
                                 configureWeb(getString(UiR.string.ui_pkcs_12_certificate_imported_reconnect_your_browser)) {
-                                    try { LanTls.preparePkcs12(bytes!!, password, alias, keyPassword).use { WebSession.installCertificate(this, it) } }
+                                    try { LanTls.preparePkcs12(bytes!!, password, alias, keyPassword).use { WebSession.installCertificate(this, it, type = WebListenSettings.CertificateType.PKCS12) } }
                                     finally { clear(); keyPassword.fill('\u0000') }
                                 }
                             }

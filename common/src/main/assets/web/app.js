@@ -988,6 +988,7 @@ if (typeof document !== 'undefined') {
       const info = await response.json();
       if (info.available && Number.isInteger(info.port) && info.port >= 1 && info.port <= 65535) {
         const endpoint = new URL(location.href);
+        if (info.hostname) endpoint.hostname = info.hostname;
         endpoint.protocol = 'https:'; endpoint.port = String(info.port); endpoint.pathname = '/';
         endpoint.search = ''; endpoint.hash = '';
         $('https-entry').href = endpoint.href;

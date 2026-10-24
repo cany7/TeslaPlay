@@ -213,7 +213,6 @@ internal object BrowserStrings {
             "web_local_http_pages_cannot_request_microphone_permission_in_the" to
                 UiR.string.web_local_http_pages_cannot_request_microphone_permission_in_the,
             "web_loading" to UiR.string.web_loading,
-            "web_download_local_certificate" to UiR.string.web_download_local_certificate,
             "web_open_https_page" to UiR.string.web_open_https_page,
             "web_pairing_restored_choose_the_options_above_then_tap_start" to
                 UiR.string.web_pairing_restored_choose_the_options_above_then_tap_start,

@@ -570,6 +570,8 @@
     <string name="ui_bring_teslaplay_to_the_foreground_on_android_then_tap">請先將 Android 上的 TeslaPlay 開啟到前臺，再點選連線 iPhone</string>
     <string name="ui_teslaplay_tesla_experimental">TeslaPlay</string>
     <string name="web_teslaplay_head_unit_display">TeslaPlay</string>
+    <string name="ui_tesla_access_off">Tesla 訪問未開啓</string>
+    <string name="ui_secure_entry">HTTPS · %1$s</string>
     <string name="web_diag_title">實時診斷</string>
     <string name="web_diag_unknown">未知</string>
     <string name="web_diag_service">服務</string>

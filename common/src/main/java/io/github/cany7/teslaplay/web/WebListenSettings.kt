@@ -18,6 +18,7 @@ internal object WebListenSettings {
         DEFAULT(UiR.string.ui_default_local_certificate),
         PEM(UiR.string.host_pem),
         PKCS12(UiR.string.host_pkcs_12),
+        DUCKDNS(R.string.tesla_acme_title),
     }
 
     @Synchronized
@@ -140,8 +141,14 @@ internal object WebListenSettings {
         }
     }
 
-    fun saveCertificateType(context: Context, type: CertificateType) {
-        check(preferences(context).edit().putString("certificate_type", type.name).commit()) {
+    fun saveCertificateType(context: Context, type: CertificateType) =
+        saveCertificateSelection(context, type, hostname(context))
+
+    /** Mode and hostname describe the identity installed by the same operation. */
+    fun saveCertificateSelection(context: Context, type: CertificateType, hostname: String) {
+        require(TeslaHttpConfig.isHostname(hostname))
+        check(preferences(context).edit().putString("certificate_type", type.name)
+            .putString("hostname", hostname).commit()) {
             context.getString(UiR.string.ui_could_not_save_certificate_type)
         }
     }

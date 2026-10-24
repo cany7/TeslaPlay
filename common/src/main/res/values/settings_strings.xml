@@ -203,6 +203,7 @@
     <string name="settings_recovery_condition">Available when WebRTC streaming is selected.</string>
     <string name="settings_fps_description">Applies next connection. Check the web page for the actual frame rate.</string>
     <string name="settings_audio_buffer_description">Adjusts audio buffering. Applies next connection.</string>
+    <string name="settings_https_group">HTTPS certificate</string>
     <string name="settings_apply_saved">Apply and reconnect</string>
     <string name="settings_saved_apply_help">Changes are saved for the next connection. Tap Apply and reconnect to use all saved settings now.</string>
     <string name="settings_https_ports_search">Under Advanced: HTTP / HTTPS ports</string>

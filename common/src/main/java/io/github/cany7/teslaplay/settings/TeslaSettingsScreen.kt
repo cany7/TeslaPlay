@@ -21,24 +21,8 @@ internal fun TeslaSettingsScreen(state: SettingsState, actions: SettingsActions)
     )
     SettingsDescription(R.string.settings_tesla_description)
     if (config.mode == TeslaHttpMode.VPN) {
-        SettingsToggle(
-            state,
-            actions,
-            ToggleSetting.TESLA,
-            R.string.settings_enable_vpn,
-            R.string.settings_enable_vpn_description,
-            enabled,
-        )
         Text(state.runtime.teslaStatus, style = MaterialTheme.typography.bodyMedium)
-        SettingsTextPreference(
-            actions,
-            TextSetting.TESLA_ADDRESS,
-            R.string.settings_access_ip,
-            config.vpnAddress,
-            enabled,
-        )
         SettingsDescription(R.string.settings_vpn_description, config.vpnAddress, state.httpPort)
-        SettingsDescription(R.string.settings_vpn_ports_description)
         SettingsButton(R.string.settings_retry_vpn, enabled) {
             actions.command(SettingsCommand.ENABLE_VPN)
         }
@@ -48,14 +32,6 @@ internal fun TeslaSettingsScreen(state: SettingsState, actions: SettingsActions)
         }
         Text(state.runtime.rootStatus, style = MaterialTheme.typography.bodyMedium)
         if (state.runtime.rootGranted) {
-            SettingsToggle(
-                state,
-                actions,
-                ToggleSetting.TESLA,
-                R.string.settings_enable_root,
-                R.string.settings_enable_root_description,
-                enabled,
-            )
             Text(state.runtime.teslaStatus, style = MaterialTheme.typography.bodyMedium)
             SettingsTextPreference(
                 actions,

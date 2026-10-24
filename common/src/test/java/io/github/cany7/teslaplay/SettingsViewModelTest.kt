@@ -96,11 +96,11 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun changingTeslaModeDisablesThePreviousRouteAndRejectsInvalidPorts() {
-        TeslaHttpCompatibility.save(app, TeslaHttpConfig(enabled = true))
+    fun changingTeslaModeKeepsCompatibilityEnabledAndRejectsInvalidPorts() {
+        TeslaHttpCompatibility.save(app, TeslaHttpConfig(enabled = true, mode = TeslaHttpMode.ROOT))
         val model = SettingsViewModel(app, SavedStateHandle())
         model.choose(ChoiceSetting.TESLA_MODE, TeslaHttpMode.VPN.ordinal)
-        assertFalse(TeslaHttpCompatibility.config(app).enabled)
+        assertTrue(TeslaHttpCompatibility.config(app).enabled)
         assertEquals(TeslaHttpMode.VPN, model.state.value.tesla.mode)
         assertTrue(runCatching { model.edit(TextSetting.HTTP_PORT, "80") }.isFailure)
         assertEquals(8080, model.state.value.httpPort)

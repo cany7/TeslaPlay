@@ -4,10 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
-import android.view.View
-import android.view.ViewGroup
 import androidx.compose.ui.test.*
-import io.github.cany7.teslaplay.network.TeslaHttpConfig
 import io.github.cany7.teslaplay.network.TeslaHttpMode
 import io.github.cany7.teslaplay.web.RootAccess
 import io.github.cany7.teslaplay.web.TeslaHttpCompatibility
@@ -17,74 +14,58 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 
 @RunWith(RobolectricTestRunner::class)
-@Config(
-    sdk = [29],
-    qualifiers = "zh-rCN-w360dp-h800dp",
-    shadows = [TeslaVpnSettingsUiTest.ConsentShadow::class],
-)
+@Config(sdk = [29], qualifiers = "zh-rCN-w360dp-h800dp",
+    shadows = [TeslaVpnSettingsUiTest.ConsentShadow::class])
 @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
 class TeslaVpnSettingsUiTest : ComposeSettingsTest() {
     @Implements(VpnService::class)
     class ConsentShadow : org.robolectric.shadows.ShadowService() {
         companion object {
-            @JvmStatic
-            @Implementation
-            fun prepare(context: Context): Intent = Intent("wheelplay.test.VPN_CONSENT")
+            @JvmStatic @Implementation
+            fun prepare(context: Context): Intent = Intent("teslaplay.test.VPN_CONSENT")
         }
     }
 
-    private fun views(view: View): List<View> =
-        listOf(view) +
-            if (view is ViewGroup) (0 until view.childCount).flatMap { views(view.getChildAt(it)) }
-            else emptyList()
+    private fun openSettings(activity: TeslaPlayActivity) =
+        SettingsNavigation.open(activity, "Tesla 网络与 HTTPS", compose)
 
-    private fun all(activity: TeslaPlayActivity) = views(activity.window.decorView)
-
-    private fun openSettings(activity: TeslaPlayActivity) {
-        SettingsNavigation.open(activity, "Tesla 兼容（实验）", compose)
+    private fun consent(activity: TeslaPlayActivity): Intent {
+        var intent = shadowOf(activity).nextStartedActivity
+        while (intent != null && intent.action != "teslaplay.test.VPN_CONSENT")
+            intent = shadowOf(activity).nextStartedActivity
+        assertNotNull("Expected Android VPN consent", intent)
+        return intent
     }
 
-    private fun changeMode(index: Int) {
-        clickTag("choice:TESLA_MODE")
-        chooseOption(index)
-    }
-
-    private fun enable() {
-        clickTag("toggle:TESLA")
-    }
-
-    @Test
-    fun nonRootUserCanSelectVpnAndDeniedConsentKeepsItDisabled() {
+    @Test fun defaultVpnRequestsConsentAndDenialKeepsConfiguredModeWithoutPromptLoop() {
         val original = RootAccess.authorize
         var rootRequests = 0
         RootAccess.startupChecked = false
-        RootAccess.authorize = {
-            rootRequests++
-            throw java.io.IOException("No root")
-        }
+        RootAccess.authorize = { rootRequests++; throw java.io.IOException("No root") }
         val controller = Robolectric.buildActivity(TeslaPlayActivity::class.java).setup()
         val activity = controller.get()
         try {
-            openSettings(activity)
-            assertFalse(TeslaHttpCompatibility.config(activity).enabled)
-            changeMode(1)
+            val initialConsent = consent(activity)
+            assertTrue(TeslaHttpCompatibility.config(activity).enabled)
             assertEquals(TeslaHttpMode.VPN, TeslaHttpCompatibility.config(activity).mode)
-            compose.onNodeWithText("请求 Root 权限").assertDoesNotExist()
-            enable()
-            val consent = shadowOf(activity).nextStartedActivity
-            assertEquals("wheelplay.test.VPN_CONSENT", consent.action)
-            assertFalse(TeslaHttpCompatibility.config(activity).enabled)
-            shadowOf(activity).receiveResult(consent, Activity.RESULT_CANCELED, null)
+            shadowOf(activity).receiveResult(initialConsent, Activity.RESULT_CANCELED, null)
             shadowOf(android.os.Looper.getMainLooper()).idle()
-            assertFalse(TeslaHttpCompatibility.config(activity).enabled)
+            openSettings(activity)
+            compose.onNodeWithText("请求 Root 权限").assertDoesNotExist()
+            compose.onNodeWithTag("toggle:TESLA").assertDoesNotExist()
+            compose.onNodeWithTag("text:TESLA_ADDRESS").assertDoesNotExist()
+            assertEquals("100.96.0.1", TeslaHttpCompatibility.config(activity).accessAddress)
+            assertTrue(TeslaHttpCompatibility.config(activity).enabled)
+            assertNull(shadowOf(activity).nextStartedActivity)
             assertEquals(0, rootRequests)
+            compose.onNodeWithText("授权或重试 VPN").performScrollTo().performClick()
+            assertEquals("teslaplay.test.VPN_CONSENT", consent(activity).action)
         } finally {
             RootAccess.authorize = original
             controller.pause().stop().destroy()
@@ -92,22 +73,19 @@ class TeslaVpnSettingsUiTest : ComposeSettingsTest() {
         }
     }
 
-    @Test
-    fun acceptedConsentEnablesVpnAndSwitchingModesTurnsItOff() {
-        val context = RuntimeEnvironment.getApplication()
-        TeslaHttpCompatibility.save(context, TeslaHttpConfig(mode = TeslaHttpMode.VPN))
+    @Test fun acceptedConsentAndModeChangesKeepRoutingAttachedToWebService() {
         val controller = Robolectric.buildActivity(TeslaPlayActivity::class.java).setup()
         val activity = controller.get()
         try {
-            openSettings(activity)
-            enable()
-            val consent = shadowOf(activity).nextStartedActivity
-            shadowOf(activity).receiveResult(consent, Activity.RESULT_OK, null)
+            shadowOf(activity).receiveResult(consent(activity), Activity.RESULT_OK, null)
             shadowOf(android.os.Looper.getMainLooper()).idle()
+            openSettings(activity)
             assertTrue(TeslaHttpCompatibility.config(activity).enabled)
-            changeMode(0)
+            clickTag("choice:TESLA_MODE")
+            chooseOption(0)
             assertEquals(TeslaHttpMode.ROOT, TeslaHttpCompatibility.config(activity).mode)
-            assertFalse(TeslaHttpCompatibility.config(activity).enabled)
+            assertTrue(TeslaHttpCompatibility.config(activity).enabled)
+            compose.onNodeWithText("请求 Root 权限").assertExists()
         } finally {
             controller.pause().stop().destroy()
             WebSession.stop()

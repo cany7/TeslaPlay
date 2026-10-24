@@ -488,10 +488,41 @@ internal object WebSession {
             }
     }
 
-    fun installCertificate(context: Context, prepared: LanTls.Prepared): String? =
+    fun installCertificate(
+        context: Context,
+        prepared: LanTls.Prepared,
+        managed: Boolean = false,
+        type: WebListenSettings.CertificateType = WebListenSettings.CertificateType.PEM,
+        hostname: String = WebListenSettings.hostname(context),
+    ): String? = synchronized(ManagedHttps) {
+        if (!managed && ManagedHttps.busy) return@synchronized context.getString(R.string.tesla_acme_running)
+        val mode = if (managed) WebListenSettings.CertificateType.DUCKDNS else type
+        require(mode != WebListenSettings.CertificateType.DEFAULT)
         replaceHttps(context, WebListenSettings.httpsPort(context), prepared.endpoint) {
-            LanTls.saveCustom(context, prepared)
+            commitCertificate(context, prepared, mode, hostname, stopRenewal = !managed)
         }
+    }
+
+    private fun commitCertificate(
+        context: Context,
+        prepared: LanTls.Prepared?,
+        mode: WebListenSettings.CertificateType,
+        hostname: String,
+        stopRenewal: Boolean,
+    ) {
+        val oldMode = WebListenSettings.certificateType(context)
+        val oldHostname = WebListenSettings.hostname(context)
+        LanTls.replaceCustom(context, prepared) {
+            try {
+                WebListenSettings.saveCertificateSelection(context, mode, hostname)
+                if (stopRenewal) ManagedHttps.disable(context)
+            } catch (failure: Exception) {
+                try { WebListenSettings.saveCertificateSelection(context, oldMode, oldHostname) }
+                catch (restore: Exception) { failure.addSuppressed(restore) }
+                throw failure
+            }
+        }
+    }
 
     @Synchronized
     fun setHttpsEnabled(context: Context, enabled: Boolean): String? =
@@ -520,13 +551,16 @@ internal object WebSession {
             }
             .getOrElse { context.getString(UiR.string.error_https_toggle, it.userMessage(context)) }
 
-    fun setHostname(context: Context, hostname: String): String? =
-        runCatching {
+    fun setHostname(context: Context, hostname: String, managed: Boolean = false): String? =
+        synchronized(ManagedHttps) { runCatching {
+                check(managed || !ManagedHttps.busy) { context.getString(R.string.tesla_acme_running) }
                 WebListenSettings.saveHostname(context, hostname)
+                if (!managed && ManagedHttps.config(context)?.let { it.enabled && it.domain != hostname } == true)
+                    ManagedHttps.disable(context)
                 refreshGeneratedCertificate(context)
                 null
             }
-            .getOrElse { it.userMessage(context) }
+            .getOrElse { it.userMessage(context) } }
 
     @Synchronized
     fun setMdnsHostname(context: Context, hostname: String): String? =
@@ -543,7 +577,8 @@ internal object WebSession {
             }
 
     fun restoreDefaultCertificate(context: Context): String? =
-        runCatching {
+        synchronized(ManagedHttps) { runCatching {
+                check(!ManagedHttps.busy) { context.getString(R.string.tesla_acme_running) }
                 val config = TeslaHttpCompatibility.config(context)
                 val endpoint =
                     LanTls.createDefault(
@@ -552,7 +587,8 @@ internal object WebSession {
                         WebListenSettings.hostname(context),
                     )
                 replaceHttps(context, WebListenSettings.httpsPort(context), endpoint) {
-                    LanTls.clearCustom(context)
+                    commitCertificate(context, null, WebListenSettings.CertificateType.DEFAULT,
+                        WebListenSettings.hostname(context), stopRenewal = true)
                 }
             }
             .getOrElse {
@@ -560,7 +596,7 @@ internal object WebSession {
                     UiR.string.error_default_certificate_restore,
                     it.userMessage(context),
                 )
-            }
+            } }
 
     private fun createTls(context: Context): LanTls.Endpoint {
         val config = TeslaHttpCompatibility.config(context)

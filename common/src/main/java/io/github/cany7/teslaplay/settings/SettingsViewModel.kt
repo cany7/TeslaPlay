@@ -139,7 +139,7 @@ internal class SettingsViewModel(
         )
 
     fun choose(setting: ChoiceSetting, index: Int): SettingsEffect {
-        if (state.value.selected(setting) == index) return SettingsEffect.None
+        if (setting != ChoiceSetting.CERTIFICATE && state.value.selected(setting) == index) return SettingsEffect.None
         val effect =
             when (setting) {
                 ChoiceSetting.APPEARANCE -> {
@@ -207,7 +207,7 @@ internal class SettingsViewModel(
                     TeslaHttpCompatibility.save(
                         app,
                         TeslaHttpCompatibility.config(app)
-                            .copy(mode = TeslaHttpMode.entries[index], enabled = false),
+                            .copy(mode = TeslaHttpMode.entries[index], enabled = true),
                     )
                     SettingsEffect.None
                 }
@@ -217,14 +217,9 @@ internal class SettingsViewModel(
                         SettingsEffect.WebUpdate(
                             app.getString(R.string.settings_default_certificate_restored)
                         ) {
-                            WebSession.restoreDefaultCertificate(app).also {
-                                if (it == null) WebListenSettings.saveCertificateType(app, type)
-                            }
+                            WebSession.restoreDefaultCertificate(app)
                         }
-                    else {
-                        WebListenSettings.saveCertificateType(app, type)
-                        SettingsEffect.None
-                    }
+                    else SettingsEffect.None
                 }
             }
         reload()

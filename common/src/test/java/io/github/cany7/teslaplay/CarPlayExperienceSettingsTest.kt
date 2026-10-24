@@ -8,6 +8,7 @@ import io.github.cany7.teslaplay.airplay.AirPlayInfoPlist
 import io.github.cany7.teslaplay.airplay.SafeAreaRect
 import io.github.cany7.teslaplay.web.WebSession
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -22,6 +23,17 @@ import org.robolectric.annotation.Config
 class CarPlayExperienceSettingsTest : ComposeSettingsTest() {
     private val context
         get() = RuntimeEnvironment.getApplication()
+
+    @Before
+    fun isolateAudioSettingsFromVpnConsent() {
+        // Network consent is covered by TeslaVpnSettingsUiTest, not these audio interactions.
+        io.github.cany7.teslaplay.web.TeslaHttpCompatibility.save(
+            context,
+            io.github.cany7.teslaplay.network.TeslaHttpConfig(
+                mode = io.github.cany7.teslaplay.network.TeslaHttpMode.ROOT,
+            ),
+        )
+    }
 
     private fun views(view: View): List<View> =
         listOf(view) +

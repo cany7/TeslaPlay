@@ -145,6 +145,7 @@ internal class LanWebServer(
                         .put("available", WebSession.httpsReady)
                         .put("fingerprint", WebSession.tls?.fingerprint)
                         .put("port", WebSession.httpsPortFor(context, session.headers["host"]))
+                        .put("hostname", WebListenSettings.hostname(context))
                         .put("customCertificate", WebSession.tls?.custom == true)
                         .put("enabled", WebListenSettings.httpsEnabled(context))
                         .put("error", WebSession.tlsError)
