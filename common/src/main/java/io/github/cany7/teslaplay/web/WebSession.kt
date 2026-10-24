@@ -749,6 +749,27 @@ internal object WebSession {
         configureAudio(context)
     }
 
+    @Volatile private var h264FallbackHandler: (() -> Boolean)? = null
+    private var h264RetryRequested = false
+    fun setH264FallbackHandler(handler: (() -> Boolean)?) {
+        h264FallbackHandler = handler
+        h264RetryRequested = false
+    }
+
+    /** Browser failure belongs to a particular video epoch, not the user's saved codec preference. */
+    fun requestH264Fallback(source: WebVideoSource?, sessionId: Long, epoch: Long, started: () -> Unit = {}) {
+        val handler = h264FallbackHandler
+        mainHandler.post {
+            if (handler !== h264FallbackHandler || h264RetryRequested || source == null || source !== videoSource || !mediaMatches(sessionId, epoch) ||
+                source.config?.codec != io.github.cany7.teslaplay.media.VideoCodec.H265 ||
+                projectionSessions.snapshot()?.descriptor?.id != "carplay") return@post
+            if (handler?.invoke() == true) {
+                h264RetryRequested = true
+                started()
+            }
+        }
+    }
+
     fun setBrowserViewportListener(listener: ((Int?, Int?) -> Unit)?) {
         browserViewportListener = listener
         val size = browserViewport

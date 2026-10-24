@@ -26,6 +26,7 @@ internal object BrowserStrings {
             "tesla_in_use" to UiR.string.tesla_in_use,
             "tesla_custom_size" to UiR.string.tesla_custom_size,
             "tesla_size_help" to UiR.string.tesla_size_help,
+            "web_h264_fallback" to UiR.string.web_h264_fallback,
             "web_diag_title" to UiR.string.web_diag_title,
             "web_diag_unknown" to UiR.string.web_diag_unknown,
             "web_diag_service" to UiR.string.web_diag_service,

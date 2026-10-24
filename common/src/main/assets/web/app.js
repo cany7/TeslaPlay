@@ -533,7 +533,7 @@ export function createRtcReceiver(createRenderer, {
     const current = id;
     if (current === null) return;
     close(); onStop(reason);
-    send({ type: 'rtc-fallback', id: current, ...(retryable ? {} : { retryable: false }) });
+    send({ type: 'rtc-fallback', id: current, ...(reason === 'codec-unsupported' ? { reason } : {}), ...(retryable ? {} : { retryable: false }) });
   }
   async function receive(message) {
     if (message.type === 'rtc-stop') {
@@ -693,6 +693,7 @@ if (typeof document !== 'undefined') {
   const display = $('display');
   const touchSurface = $('touch-surface');
   // Read-only diagnostic snapshots; counters never include pairing credentials or video payloads.
+  let codecRetryNoticeUntil = 0;
   const rendererStats = { selectedMode: 'native', activeMode: 'waiting', renderedFps: null, renderedFrames: null, fallbackReason: null };
   const performanceStats = { source: null, transport: null, receiver: null, image: null, presentation: rendererStats };
   const webpSupport = probeWebp();
@@ -1039,7 +1040,7 @@ if (typeof document !== 'undefined') {
     const rendererLabel = launchMode === 'native' ? 'Video' : t(launchMode === 'video-canvas' ? 'web_video_renderer_compat' : 'web_video_renderer_direct');
     const fallbackLabel = rendererStats.fallbackReason ? t(rendererStats.fallbackReason === 'processor-unsupported' ? 'web_video_renderer_unavailable' : 'web_video_renderer_failed') : '';
     const transport = rtcVisible ? `${rtc.codec === 'H265' ? 'HEVC' : 'H.264'} / WebRTC / ${rendererLabel}${rtcFps === null ? '' : ` · ${rtcFps} fps`}` : `${value.frame?.mime === 'image/webp' ? 'WebP' : 'JPEG'}${fallbackLabel}`;
-    $('status').textContent = value.state === 'recovering' ? t('web_video_recovering', transport) :
+    $('status').textContent = Date.now() < codecRetryNoticeUntil ? t('web_h264_fallback') : value.state === 'recovering' ? t('web_video_recovering', transport) :
       value.visible ? value.interactive ? t('web_transport_touch_connected', transport, rtc?.recovering ? t('web_waiting_for_recovery') : '') :
         t('web_video_input_unavailable', transport) : t('web_connected_waiting_for_iphone_video');
     $('media-message').hidden = !value.visible || value.interactive;
@@ -1187,7 +1188,12 @@ if (typeof document !== 'undefined') {
         if (data.type === 'audio-route') browserMedia.setEnabled(data.externalAudio !== true);
         if (browserMedia.receive(data)) return;
         if (browserAudio.control(data)) return;
+        if (data.type === 'rtc-codec-retry') {
+          codecRetryNoticeUntil = Date.now() + 30000;
+          presentation.refresh(); return;
+        }
         if (data.type === 'rtc-offer' || data.type === 'rtc-stop') {
+          if (data.type === 'rtc-offer' && data.codec === 'H264') codecRetryNoticeUntil = 0;
           if (data.type === 'rtc-stop') rtcRequested = false;
           else {
             const previousRevision = presentation.current.revision;

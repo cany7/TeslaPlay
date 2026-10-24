@@ -572,6 +572,8 @@
     <string name="web_teslaplay_head_unit_display">TeslaPlay</string>
     <string name="ui_tesla_access_off">Tesla 访问未开启</string>
     <string name="ui_secure_entry">HTTPS · %1$s</string>
+    <string name="ui_h264_reconnecting">浏览器不支持 HEVC，正在用 H.264 重新连接…</string>
+    <string name="web_h264_fallback">浏览器不支持 HEVC，正在尝试 H.264…</string>
     <string name="web_diag_title">实时诊断</string>
     <string name="web_diag_unknown">未知</string>
     <string name="web_diag_service">服务</string>

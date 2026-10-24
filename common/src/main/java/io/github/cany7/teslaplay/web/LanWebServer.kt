@@ -440,6 +440,8 @@ internal class LanWebServer(
         private val rtcRetry = RtcRetryPolicy()
         private var rtcId = 0L
         private var rtcAnswered = false
+        private var rtcSessionId = -1L
+        private var rtcVideoEpoch = -1L
 
         private fun reconcileVideo() =
             synchronized(rtcLock) {
@@ -481,6 +483,8 @@ internal class LanWebServer(
                 if (!rtcRetry.start()) return
                 rtcAnswered = false
                 val id = ++rtcId
+                rtcSessionId = media.sessionId
+                rtcVideoEpoch = media.videoEpoch
                 val recovery =
                     io.github.cany7.teslaplay.AirPlayPersistence.loadRtcRecoveryPolicy(context)
                 val stream =
@@ -810,7 +814,16 @@ internal class LanWebServer(
                         }
                     "rtc-fallback" ->
                         synchronized(rtcLock) {
-                            if (data.getLong("id") == rtcId) stopRtc(data.optBoolean("retryable", true))
+                            if (data.getLong("id") == rtcId && rtc != null) {
+                                if (data.optString("reason") == "codec-unsupported" &&
+                                    rtcConfig?.codec == io.github.cany7.teslaplay.media.VideoCodec.H265) {
+                                    WebSession.requestH264Fallback(rtcSource, rtcSessionId, rtcVideoEpoch) {
+                                        if (!ended.get()) reply(WebStreamSender.Control.RTC,
+                                            JSONObject().put("type", "rtc-codec-retry").put("codec", "H264").toString())
+                                    }
+                                }
+                                stopRtc(data.optBoolean("retryable", true))
+                            }
                         }
                     "input" -> {
                         val event = when (data.getString("kind")) {

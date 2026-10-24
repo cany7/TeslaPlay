@@ -572,6 +572,8 @@
     <string name="web_teslaplay_head_unit_display">TeslaPlay</string>
     <string name="ui_tesla_access_off">Tesla access is off</string>
     <string name="ui_secure_entry">HTTPS · %1$s</string>
+    <string name="ui_h264_reconnecting">HEVC is unsupported by this browser. Reconnecting with H.264…</string>
+    <string name="web_h264_fallback">HEVC is unsupported. Trying H.264…</string>
     <string name="web_diag_title">Live diagnostics</string>
     <string name="web_diag_unknown">Unknown</string>
     <string name="web_diag_service">Service</string>

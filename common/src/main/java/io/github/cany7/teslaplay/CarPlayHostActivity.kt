@@ -309,6 +309,7 @@ class CarPlayHostActivity : ComponentActivity() {
     private var uiScalePercent = CarPlayUiScale.DEFAULT
     private var displayDiagnosticAttempt: String? = null
     private var hevcEnabled = true
+    private var h264FallbackAttempted = false
     private var hevcSoftwareDecoderEnabled = false
     private var advancedAudioChannelMappingSupported = false
     private var advancedAudioChannelMapping = false
@@ -454,6 +455,16 @@ class CarPlayHostActivity : ComponentActivity() {
                     "play" -> session.sendMedia(3)
                     "next" -> session.sendMedia(4)
                 }
+            }
+        }
+        WebSession.setH264FallbackHandler {
+            if (h264FallbackAttempted || !hevcEnabled || !CarPlayBackgroundSession.isOwner(this) ||
+                shuttingDown.get() || menuOpen || handshakeResetInProgress || activeDisplaySize == null) false
+            else {
+                h264FallbackAttempted = true
+                hevcEnabled = false
+                restartCarPlay(getString(UiR.string.ui_h264_reconnecting))
+                true
             }
         }
         WebSession.setBrowserViewportListener { width, height ->
@@ -739,6 +750,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     override fun onDestroy() {
         WebSession.setBrowserViewportListener(null)
+        WebSession.setH264FallbackHandler(null)
         WebSession.setVirtualButtonHandler(null)
         mainHandler.removeCallbacks(applyDisplaySize)
         mainHandler.removeCallbacks(expireOldLogLines)

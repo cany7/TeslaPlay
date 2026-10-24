@@ -184,7 +184,7 @@ test('HEVC unsupported by the receiver falls back before creating a peer', async
   const f = fixture(() => { created = true; }, codec => codec === 'H264');
   await f.receiver.receive({ type: 'rtc-offer', id: 10, codec: 'H265', sdp: 'offer' });
   assert.equal(created, false);
-  assert.deepEqual(f.sent, [{ type: 'rtc-fallback', id: 10, retryable: false }]);
+  assert.deepEqual(f.sent, [{ type: 'rtc-fallback', id: 10, reason: 'codec-unsupported', retryable: false }]);
   assert.equal(f.receiver.active, false);
 });
 
@@ -197,7 +197,7 @@ test('HEVC negotiates its own codec and waits for decoded output; rejected media
   assert.equal(f.receiver.active, true);
   f.pc.createAnswer = async () => ({ type: 'answer', sdp: 'm=video 0 UDP/TLS/RTP/SAVPF 96\r\n' });
   await f.receiver.receive({ type: 'rtc-offer', id: 12, codec: 'H265', sdp: 'offer' });
-  assert.deepEqual(f.sent.at(-1), { type: 'rtc-fallback', id: 12, retryable: false });
+  assert.deepEqual(f.sent.at(-1), { type: 'rtc-fallback', id: 12, reason: 'codec-unsupported', retryable: false });
   assert.equal(f.receiver.active, false);
 });
 
@@ -295,4 +295,18 @@ test('a remote track ending falls back immediately and detaches its end handler 
   track.onended();
   assert.equal(track.stopped, true); assert.equal(f.receiver.active, false);
   assert.deepEqual(f.sent.at(-1), { type: 'rtc-fallback', id: 31 });
+});
+
+test('an unsupported HEVC offer reports codec failure and a replacement H264 offer can play', async () => {
+  const f = fixture(undefined, codec => codec === 'H264');
+  await f.receiver.receive({ type: 'rtc-offer', id: 50, codec: 'H265', sdp: 'hevc-offer' });
+  assert.deepEqual(f.sent, [{ type: 'rtc-fallback', id: 50, reason: 'codec-unsupported', retryable: false }]);
+  assert.equal(f.receiver.active, false);
+  await f.receiver.receive({ type: 'rtc-offer', id: 51, codec: 'H264', sdp: 'avc-offer' });
+  f.pc.ontrack({ track: { stop() {} }, streams: [{}] }); await Promise.resolve();
+  assert.equal(f.receiver.active, true);
+  assert.equal(f.receiver.codec, 'H264');
+  assert.equal(f.sent.filter(m => m.type === 'rtc-fallback').length, 1);
+  await f.receiver.receive({ type: 'rtc-stop', id: 50 });
+  assert.equal(f.receiver.active, true, 'retired HEVC stop must not stop H264');
 });
