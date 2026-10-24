@@ -4,8 +4,9 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { resourceStrings } from '../scripts/resource-strings.mjs';
 const messages = resourceStrings('values-zh-rCN');
+const template = readFileSync(new URL('../common/src/main/assets/web/index.html', import.meta.url), 'utf8');
 
-const source = ['text.js', 'desktop-input.js', 'browser-audio.js', 'browser-location.js', 'browser-media-session.js', 'diagnostics.js', 'display-menu.js', 'app.js']
+const source = ['text.js', 'desktop-input.js', 'browser-audio.js', 'browser-location.js', 'browser-media-session.js', 'diagnostics.js', 'virtual-buttons.js', 'app.js']
   .map(name => readFileSync(new URL(`../common/src/main/assets/web/${name}`, import.meta.url), 'utf8')
     .replace(/^import .*;$/gm, '').replaceAll('export function', 'function')).join('\n');
 function fixture({ storedCanvas = null, storedMode = null, processorAvailable = true, storedIgnoreZoom = null, storageDisabled = false, canvasAvailable = true, supportsWebp = false,
@@ -24,7 +25,7 @@ function fixture({ storedCanvas = null, storedMode = null, processorAvailable = 
   let nextTimer = 0, nextFrame = 0, clockNow = 1000;
   const element = id => {
     const classes = new Set();
-    if (!elements.has(id)) elements.set(id, { hidden: ['video-canvas', 'display-menu', 'menu-handle', 'virtual-buttons'].includes(id), complete: true, value: '123456', handlers: {}, naturalWidth: 1280, naturalHeight: 720,
+    if (!elements.has(id)) elements.set(id, { hidden: ['video-canvas', 'virtual-buttons'].includes(id), complete: true, value: '123456', handlers: {}, naturalWidth: 1280, naturalHeight: 720,
       checked: false, videoWidth: 1280, videoHeight: 720, readyState: 2, currentTime: 0,
       style: { removeProperty(name) { delete this[name]; } },
       parentElement: { getBoundingClientRect: () => mainRect },
@@ -36,7 +37,7 @@ function fixture({ storedCanvas = null, storedMode = null, processorAvailable = 
       remove() { this.hidden = true; this.removed = true; },
       insertBefore(child) { child.removed = false; },
       append(...children) { this.children = [...(this.children || []), ...children]; }, replaceChildren(...children) { this.children = children; },
-      removeAttribute() {}, setAttribute() {}, setPointerCapture() {}, focus() {}, blur() {}, matches() { return false; }, contains() { return false; }, querySelectorAll() { return []; },
+      removeAttribute() {}, setAttribute() {}, setPointerCapture() {}, focus() {}, blur() {}, matches() { return false; }, contains() { return false; }, querySelectorAll() { return id === 'virtual-buttons' ? ['home', 'back', 'siri', 'previous', 'play', 'next'].map(action => Object.assign(element(`shortcut-${action}`), { dataset: { action } })) : []; },
       getBoundingClientRect() {
         if (id !== 'display' || !classes.has('ignore-browser-zoom')) return mainRect;
         const scale = Number(this.style.transform.match(/scale\((.*)\)/)[1]);
@@ -59,7 +60,7 @@ function fixture({ storedCanvas = null, storedMode = null, processorAvailable = 
     async setLocalDescription() {}
     close() { this.closed = true; }
   }
-  const document = { createElement(tag) { const created = element(tag === 'video' ? 'video' : `created-${tag}-${elements.size}`); if (tag === 'video') createdVideos.push(created); return created; }, getElementById: element, body: element('body'), fullscreenElement: null, documentElement: {},
+  const document = { createElement(tag) { const created = element(tag === 'video' ? 'video' : `created-${tag}-${elements.size}`); if (tag === 'video') createdVideos.push(created); return created; }, getElementById: id => template.includes(`id="${id}"`) ? element(id) : null, body: element('body'), fullscreenElement: null, documentElement: {},
     addEventListener(name, fn) { const previous = documentEvents[name]; documentEvents[name] = previous ? event => { previous(event); fn(event); } : fn; },
     exitFullscreen() {
       fullscreenCalls.push('exit'); this.fullscreenElement = null;
@@ -162,17 +163,13 @@ test('the overlay forwards a complete drag independently of the native video ele
   assert.deepEqual(ws.sent.filter(m => m.type === 'touch').map(m => m.contacts[0].down), [true, true, false]);
 });
 
-test('projection hides the menu until its handle opens it and disconnect hides the handle', async () => {
-  const f = fixture();
-  f.element('hide-toolbar').checked = true;
-  const ws = await f.connect();
-  assert.equal(f.element('display-menu').hidden, true);
-  assert.equal(f.element('menu-handle').hidden, false);
-  f.element('menu-handle').handlers.click({ stopPropagation() {} });
-  assert.equal(f.element('display-menu').hidden, false);
+test('hide-toolbar hides the ordinary topbar until disconnect restores pairing', async () => {
+  const f = fixture(); f.element('hide-toolbar').checked = true;
+  await f.connect();
+  assert.equal(f.element('topbar').hidden, true);
   f.element('disconnect').handlers.click();
-  assert.equal(f.element('menu-handle').hidden, true);
   assert.equal(f.element('topbar').hidden, false);
+  assert.equal(f.element('pairing').hidden, false);
 });
 
 test('normal launch leaves fullscreen and the top bar unchanged', async () => {
@@ -182,7 +179,7 @@ test('normal launch leaves fullscreen and the top bar unchanged', async () => {
   assert.equal(f.element('topbar').hidden, false);
 });
 
-test('immersive launch requests fullscreen in the submit gesture and keeps the menu collapsed', async () => {
+test('immersive launch hides the topbar and fullscreen exit restores it without disconnecting', async () => {
   const f = fixture(); f.element('fullscreen-on-start').checked = true;
   const connecting = f.connect();
   assert.deepEqual(f.fullscreenCalls, ['request']);
@@ -190,8 +187,7 @@ test('immersive launch requests fullscreen in the submit gesture and keeps the m
   assert.equal(f.element('topbar').hidden, false);
   await connecting;
   assert.equal(f.document.fullscreenElement, f.document.documentElement);
-  assert.equal(f.element('display-menu').hidden, true);
-  assert.equal(f.element('menu-handle').hidden, false);
+  assert.equal(f.element('topbar').hidden, true);
   await f.document.exitFullscreen();
   assert.equal(f.element('topbar').hidden, false);
   assert.equal(f.element('display').hidden, false, 'Leaving fullscreen keeps the stream connected');
@@ -206,13 +202,12 @@ test('disconnect exits launch-owned fullscreen and restores the pairing interfac
   assert.equal(f.element('pairing').hidden, false);
 });
 
-test('unavailable or rejected fullscreen keeps the menu collapsed without preventing launch', async () => {
+test('unavailable or rejected fullscreen still hides the topbar as requested', async () => {
   for (const fullscreen of ['unsupported', 'denied']) {
     const f = fixture({ fullscreen }); f.element('fullscreen-on-start').checked = true;
     await f.connect();
     assert.equal(f.document.fullscreenElement, null);
-    assert.equal(f.element('display-menu').hidden, true);
-  assert.equal(f.element('menu-handle').hidden, false);
+    assert.equal(f.element('topbar').hidden, true);
     assert.equal(f.element('display').hidden, false);
     f.element('disconnect').handlers.click();
     assert.equal(f.element('topbar').hidden, false);
@@ -938,4 +933,79 @@ test('the paired socket publishes phone state to Media Session and clears it bef
   const count = ws.sent.length; pause(); assert.equal(ws.sent.length, count);
   ws.onmessage({ data: JSON.stringify({ ...state, revision: 2 }) });
   assert.equal(session.metadata, null);
+});
+
+const shortcutStatus = (ws, buttons = true, sourceId = 'carplay', inputReady = true) => ws.onmessage({ data: JSON.stringify({
+  type: 'status', sourceId, inputReady, displayPreferences: { buttons }, width: 1280, height: 720,
+}) });
+const shortcutEvent = () => ({ stopped: false, stopPropagation() { this.stopped = true; } });
+
+test('phone preference controls shortcuts across status, refresh and reconnect without viewport changes', async () => {
+  const f = fixture(), ws = await f.connect();
+  assert.equal(f.element('virtual-buttons').hidden, true);
+  f.reportViewport(); const before = ws.sent.filter(m => m.type === 'viewport').length;
+  shortcutStatus(ws, true);
+  assert.equal(f.element('virtual-buttons').hidden, false);
+  shortcutStatus(ws, false);
+  assert.equal(f.element('virtual-buttons').hidden, true);
+  assert.equal(ws.sent.filter(m => m.type === 'viewport').length, before);
+  assert.equal(ws.sent.some(m => ['display-save', 'display-apply', 'virtual-buttons'].includes(m.type)), false);
+  ws.close(); assert.equal(f.element('virtual-buttons').hidden, true);
+  const next = await f.connect(); shortcutStatus(next, true);
+  assert.equal(f.element('virtual-buttons').hidden, false);
+  const fresh = fixture(), refreshed = await fresh.connect(); shortcutStatus(refreshed, true);
+  assert.equal(fresh.element('virtual-buttons').hidden, false);
+});
+
+test('actual shortcut events release contacts and reach WebSocket through the real congested outbox', async () => {
+  const f = fixture(), ws = await f.connect(); f.frame(ws); shortcutStatus(ws);
+  f.pointer('pointerdown', 100, 'touch-surface');
+  ws.bufferedAmount = 8192;
+  const down = shortcutEvent(); f.element('virtual-buttons').handlers.pointerdown(down);
+  assert.equal(down.stopped, true);
+  const before = ws.sent.length;
+  for (const action of ['home', 'back', 'siri', 'previous', 'play', 'next']) {
+    const event = shortcutEvent(); f.element(`shortcut-${action}`).handlers.click(event);
+    assert.equal(event.stopped, true);
+  }
+  assert.equal(ws.sent.length, before);
+  ws.bufferedAmount = 0; f.retry();
+  assert.deepEqual(ws.sent.filter(m => m.type === 'virtual-button').map(m => m.action), ['home', 'back', 'siri', 'previous', 'play', 'next']);
+  const queued = ws.sent.slice(before);
+  assert.ok(queued.findIndex(m => m.type === 'touch' && m.contacts.length === 0) < queued.findIndex(m => m.type === 'virtual-button'));
+  assert.ok(!queued.some(m => m.type === 'touch' && m.contacts.some(c => c.down)));
+});
+
+test('shortcuts disable for other inputs and input-not-ready; failures use existing reconnect feedback', async () => {
+  const f = fixture(), ws = await f.connect();
+  for (const [show, source, ready] of [[true, 'vnc', true], [true, 'carplay', false], [false, 'carplay', true]]) {
+    shortcutStatus(ws, show, source, ready);
+    f.element('shortcut-home').handlers.click(shortcutEvent());
+  }
+  assert.equal(ws.sent.some(m => m.type === 'virtual-button'), false);
+  shortcutStatus(ws);
+  ws.send = () => { throw new Error('socket send failed'); };
+  f.element('shortcut-home').handlers.click(shortcutEvent());
+  assert.equal(ws.readyState, 3);
+  assert.equal(f.element('virtual-buttons').hidden, true);
+  assert.match(f.element('status').textContent, /重试/);
+});
+
+test('ordinary toolbar and collapsed diagnostics live in the page without a settings overlay', () => {
+  assert.doesNotMatch(template, /id="(?:menu-handle|display-menu|show-virtual-buttons|window-save|window-apply)"/);
+  assert.ok(template.indexOf('<header id="topbar"') < template.indexOf('<main>'));
+  assert.match(template, /<details id="projection-diagnostics" class="secure-setup">/);
+  assert.ok(template.indexOf('id="projection-diagnostics"') > template.indexOf('id="pairing"'));
+});
+
+test('an immersive interrupted connection restores its hiding choice on retry and pairing after failure', async () => {
+  const f = fixture(); f.element('fullscreen-on-start').checked = true;
+  const ws = await f.connect(); ws.close();
+  await [...f.timers.values()].find(t => t.delay === 1000).fn();
+  const retry = f.sockets.at(-1); retry.readyState = 1; retry.onopen();
+  assert.equal(f.element('topbar').hidden, true);
+  retry.onmessage({ data: JSON.stringify({ type: 'busy', message: 'busy' }) });
+  assert.equal(f.element('topbar').hidden, false);
+  assert.equal(f.element('pairing').hidden, false);
+  assert.equal(f.document.fullscreenElement, null);
 });

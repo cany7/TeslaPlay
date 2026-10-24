@@ -305,6 +305,7 @@ class CarPlayHostActivity : ComponentActivity() {
     private var currentSurfaceTexture: SurfaceTexture? = null
     private var activeDisplaySize: DisplaySize? = null
     private var pendingDisplaySize: DisplaySize? = null
+    private var pendingSavedDisplayApply = false
     private val displayScaleTenths = CarPlayDisplayScale.DEFAULT_TENTHS
     private var uiScalePercent = CarPlayUiScale.DEFAULT
     private var displayDiagnosticAttempt: String? = null
@@ -371,8 +372,10 @@ class CarPlayHostActivity : ComponentActivity() {
     private val expireOldLogLines = Runnable { refreshLogView(System.currentTimeMillis()) }
     private val applyDisplaySize = Runnable {
         val size = pendingDisplaySize ?: return@Runnable
+        val applySaved = pendingSavedDisplayApply
         pendingDisplaySize = null
-        applyDisplaySize(size)
+        pendingSavedDisplayApply = false
+        applyDisplaySize(size, applySaved)
     }
 
     private val textureListener = object : TextureView.SurfaceTextureListener {
@@ -467,8 +470,8 @@ class CarPlayHostActivity : ComponentActivity() {
                 true
             }
         }
-        WebSession.setBrowserViewportListener { width, height ->
-            mainHandler.post { scheduleBrowserDisplaySize(width, height) }
+        WebSession.setBrowserViewportListener { width, height, applySaved ->
+            mainHandler.post { scheduleBrowserDisplaySize(width, height, applySaved) }
         }
         showSystemBars()
         onBackPressedDispatcher.addCallback(
@@ -3013,7 +3016,7 @@ class CarPlayHostActivity : ComponentActivity() {
         mainHandler.postDelayed(applyDisplaySize, DISPLAY_CHANGE_DEBOUNCE_MILLIS)
     }
 
-    private fun scheduleBrowserDisplaySize(width: Int?, height: Int?) {
+    private fun scheduleBrowserDisplaySize(width: Int?, height: Int?, applySaved: Boolean = false) {
         if (shuttingDown.get()) return
         val size = if (width == null || height == null) {
             DisplaySize(1280, 720)
@@ -3022,15 +3025,20 @@ class CarPlayHostActivity : ComponentActivity() {
             fun even(value: Double) = (value.toInt().coerceAtLeast(2) / 2) * 2
             DisplaySize(even(width * scale), even(height * scale))
         }
-        if (size == activeDisplaySize || size == pendingDisplaySize) return
+        if (!applySaved && (size == activeDisplaySize || size == pendingDisplaySize)) return
         appendLog("Adaptive browser display requested: ${size.width}x${size.height}")
         pendingDisplaySize = size
+        pendingSavedDisplayApply = pendingSavedDisplayApply || applySaved
         mainHandler.removeCallbacks(applyDisplaySize)
         mainHandler.postDelayed(applyDisplaySize, BROWSER_DISPLAY_CHANGE_DEBOUNCE_MILLIS)
     }
 
-    private fun applyDisplaySize(size: DisplaySize) {
-        if (shuttingDown.get() || size == activeDisplaySize) return
+    private fun applyDisplaySize(size: DisplaySize, applySaved: Boolean = false) {
+        if (shuttingDown.get() || (!applySaved && size == activeDisplaySize)) return
+        if (applySaved) {
+            loadPersistedSettings()
+            h264FallbackAttempted = false
+        }
         val previous = activeDisplaySize
         activeDisplaySize = size
         recordDetectedMaximum(size)

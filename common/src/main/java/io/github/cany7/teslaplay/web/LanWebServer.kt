@@ -177,7 +177,7 @@ internal class LanWebServer(
                 "/text.js" -> "text.js" to "text/javascript; charset=utf-8"
                 "/brand-storage.js" -> "brand-storage.js" to "text/javascript; charset=utf-8"
                 "/diagnostics.js" -> "diagnostics.js" to "text/javascript; charset=utf-8"
-                "/display-menu.js" -> "display-menu.js" to "text/javascript; charset=utf-8"
+                "/virtual-buttons.js" -> "virtual-buttons.js" to "text/javascript; charset=utf-8"
                 "/app.js" -> "app.js" to "text/javascript; charset=utf-8"
                 "/desktop-input.js" -> "desktop-input.js" to "text/javascript; charset=utf-8"
                 "/style.css" -> "style.css" to "text/css; charset=utf-8"
@@ -683,18 +683,6 @@ internal class LanWebServer(
                         }
                         sender.frameAvailable()
                     }
-                    "display-save" -> {
-                        val old = TeslaDisplayPreferences.load(context)
-                        val mode = data.getString("mode")
-                        require(mode in listOf("right", "large"))
-                        val profile = TeslaDisplayPreferences.Profile(data.getInt("width"), data.getInt("height"), data.getString("preset"), data.getDouble("scale"))
-                        val next = if (mode == "right") old.copy(active = mode, right = profile, enabled = true)
-                            else old.copy(active = mode, large = profile, enabled = true)
-                        TeslaDisplayPreferences.save(context, next)
-                        if (data.optBoolean("apply")) WebSession.applySavedDisplay(context)
-                    }
-                    "display-apply" -> WebSession.applySavedDisplay(context)
-                    "virtual-buttons" -> TeslaDisplayPreferences.saveButtons(context, data.getBoolean("show"))
                     "virtual-button" -> {
                         val action = data.getString("action")
                         require(action in listOf("home", "back", "siri", "previous", "play", "next"))

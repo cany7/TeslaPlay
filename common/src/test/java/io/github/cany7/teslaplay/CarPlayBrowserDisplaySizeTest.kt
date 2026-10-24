@@ -29,6 +29,45 @@ class CarPlayBrowserDisplaySizeTest {
             .apply { isAccessible = true }.invoke(host, size) as AirPlayPhysicalSizeMm
     }
 
+    @Test fun explicitApplyQueuesEvenTheSameSizeAndIsNotCancelledByAnOrdinaryViewportReport() {
+        val host = host()
+        val sizeClass = CarPlayHostActivity::class.java.declaredClasses.single { it.simpleName == "DisplaySize" }
+        val size = sizeClass.getDeclaredConstructor(Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
+            .apply { isAccessible = true }.newInstance(1280, 720)
+        ReflectionHelpers.setField(host, "activeDisplaySize", size)
+        val schedule = CarPlayHostActivity::class.java.getDeclaredMethod("scheduleBrowserDisplaySize",
+            Int::class.javaObjectType, Int::class.javaObjectType, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
+        schedule.invoke(host, 1280, 720, false)
+        assertEquals(null, ReflectionHelpers.getField<Any?>(host, "pendingDisplaySize"))
+        schedule.invoke(host, 1280, 720, true)
+        assertEquals(size, ReflectionHelpers.getField<Any?>(host, "pendingDisplaySize"))
+        assertEquals(true, ReflectionHelpers.getField<Boolean>(host, "pendingSavedDisplayApply"))
+        schedule.invoke(host, 1280, 720, false)
+        assertEquals(true, ReflectionHelpers.getField<Boolean>(host, "pendingSavedDisplayApply"))
+        ReflectionHelpers.getField<android.os.Handler>(host, "mainHandler").removeCallbacksAndMessages(null)
+    }
+
+    @Test fun explicitApplyReloadsSavedSettingsEvenWhenOutputDimensionsAreUnchanged() {
+        val host = host()
+        AirPlayPersistence.saveHevcEnabled(host, false)
+        AirPlayPersistence.saveFps(host, 30)
+        ReflectionHelpers.setField(host, "hevcEnabled", true)
+        ReflectionHelpers.setField(host, "fps", 60)
+        ReflectionHelpers.setField(host, "menuOpen", true) // Keep this unit test out of hardware startup.
+        val sizeClass = CarPlayHostActivity::class.java.declaredClasses.single { it.simpleName == "DisplaySize" }
+        val size = sizeClass.getDeclaredConstructor(Int::class.javaPrimitiveType, Int::class.javaPrimitiveType)
+            .apply { isAccessible = true }.newInstance(1280, 720)
+        ReflectionHelpers.setField(host, "activeDisplaySize", size)
+        val apply = CarPlayHostActivity::class.java.getDeclaredMethod("applyDisplaySize", sizeClass,
+            Boolean::class.javaPrimitiveType).apply { isAccessible = true }
+        apply.invoke(host, size, false)
+        assertEquals(true, ReflectionHelpers.getField<Boolean>(host, "hevcEnabled"))
+        assertEquals(60, ReflectionHelpers.getField<Int>(host, "fps"))
+        apply.invoke(host, size, true)
+        assertEquals(false, ReflectionHelpers.getField<Boolean>(host, "hevcEnabled"))
+        assertEquals(30, ReflectionHelpers.getField<Int>(host, "fps"))
+    }
+
     @Test fun mediumBrowserCanvasKeepsItsPhysicalSizeAfterAFourKViewport() {
         assertEquals(AirPlayPhysicalSizeMm(300, 233), physicalSize(host(), 1184, 920))
     }

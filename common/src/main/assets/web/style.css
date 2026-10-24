@@ -25,10 +25,7 @@
 .audio-details { min-width: 0; max-width: 30vw; font-size: .8rem; }
 .audio-details > div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Both controls are overlays: their visibility never changes the negotiated canvas. */
-#menu-handle{position:fixed;z-index:12;top:0;left:50%;transform:translate(-50%,-28px);min-height:52px;min-width:108px;background:#232323ed;border-radius:0 0 14px 14px;transition:transform .2s;touch-action:manipulation}#menu-handle.peek,#menu-handle:focus-visible{transform:translate(-50%,0)}
-#display-menu{position:fixed;inset:0;z-index:11;overflow:auto;background:#151515f5;padding:64px max(16px,env(safe-area-inset-right)) 24px;overscroll-behavior:contain}#display-menu header{height:auto;min-height:64px;flex-wrap:wrap;padding:16px}#menu-close{position:absolute;top:8px;inset-inline-end:16px}.window-settings{max-width:800px;margin:16px auto}.window-settings label{display:flex;align-items:center;flex-wrap:wrap;gap:12px;font-size:inherit}.window-settings input,.window-settings select{max-width:100%;font:inherit;letter-spacing:0;min-height:48px;padding:10px;color:inherit;background:#232323;border:1px solid #4e4e4e;border-radius:8px}.window-actions{display:flex;flex-wrap:wrap;gap:12px}#virtual-buttons{position:fixed;z-index:10;bottom:max(12px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);max-width:96%;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;background:#151515e8;border-radius:12px;padding:8px}#virtual-buttons button{min-height:48px;padding:0 14px}#window-preview{font-weight:600}.projecting main{overflow:hidden}
-@media(prefers-color-scheme:light){#display-menu{color:#212121;background:#f3f3f3f5}#display-menu p{color:#4d4d4d}#display-menu input,#display-menu select,#menu-handle,#virtual-buttons{color:#212121;background:#e7e7e7f5}}
-@media(prefers-reduced-motion:reduce){#menu-handle{transition:none}}
-
-@media(hover:hover){#menu-handle:hover{transform:translate(-50%,0)}}
+/* Shortcut visibility does not change the negotiated canvas. */
+#virtual-buttons{position:fixed;z-index:10;bottom:max(12px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:max-content;max-width:96%;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;background:#151515e8;border-radius:12px;padding:8px;touch-action:manipulation}
+#virtual-buttons button{min-height:48px;padding:0 14px}
+@media(prefers-color-scheme:light){#virtual-buttons{color:#212121;background:#e7e7e7f5}}

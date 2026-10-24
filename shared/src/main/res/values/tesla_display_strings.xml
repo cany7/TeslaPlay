@@ -1,6 +1,4 @@
 <resources>
-    <string name="tesla_menu">Display settings</string>
-    <string name="tesla_close">Close</string>
     <string name="tesla_window_title">Tesla display size</string>
     <string name="tesla_window_help">Save separate sizes for the right and large windows. This does not resize Tesla’s own windows. Without a saved size, the browser area is used when connecting.</string>
     <string name="tesla_window_mode">Window type</string>
@@ -25,7 +23,6 @@
     <string name="tesla_previous">Previous</string>
     <string name="tesla_play">Play / pause</string>
     <string name="tesla_next">Next</string>
-    <string name="tesla_revert">Revert</string>
     <string name="tesla_virtual_buttons_description">Shows Home, Back, Siri and playback buttons on screen.</string>
     <string name="tesla_auto">Use browser area when connecting</string>
     <string name="tesla_unsaved">Unsaved changes</string>

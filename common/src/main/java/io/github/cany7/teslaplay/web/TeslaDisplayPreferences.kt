@@ -54,11 +54,5 @@ internal object TeslaDisplayPreferences {
     fun buttons(context: Context) = preferences(context).getBoolean(BUTTONS_KEY, false)
     fun saveButtons(context: Context, show: Boolean) = preferences(context).edit().putBoolean(BUTTONS_KEY, show).apply()
     fun pending(config: Config) = config.enabled && config.profile().output() != WebSession.appliedBrowserViewport
-    fun status(context: Context): JSONObject {
-        val saved = load(context)
-        val output = saved.profile().output()
-        return saved.json().put("buttons", buttons(context)).put("buttonsSet", preferences(context).contains(BUTTONS_KEY))
-            .put("outputWidth", output.first).put("outputHeight", output.second)
-            .put("pending", pending(saved))
-    }
+    fun status(context: Context): JSONObject = JSONObject().put("buttons", buttons(context))
 }

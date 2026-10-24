@@ -141,7 +141,7 @@ internal object WebSession {
     val currentBrowserViewport: Pair<Int, Int>?
         get() = browserViewport
 
-    @Volatile private var browserViewportListener: ((Int?, Int?) -> Unit)? = null
+    @Volatile private var browserViewportListener: ((Int?, Int?, Boolean) -> Unit)? = null
     @Volatile private var inputSession: ProjectionSession? = null
     val maxTouchContacts get() = projectionSessions.snapshot()?.capabilities?.maxTouchContacts ?: 0
     val touch = TouchLease(maxContacts = { maxTouchContacts }, sendInput = { event ->
@@ -770,10 +770,10 @@ internal object WebSession {
         }
     }
 
-    fun setBrowserViewportListener(listener: ((Int?, Int?) -> Unit)?) {
+    fun setBrowserViewportListener(listener: ((Int?, Int?, Boolean) -> Unit)?) {
         browserViewportListener = listener
         val size = browserViewport
-        if (!projectionSessions.hasSession()) listener?.invoke(size?.first, size?.second)
+        if (!projectionSessions.hasSession()) listener?.invoke(size?.first, size?.second, false)
     }
 
     @Volatile var appliedBrowserViewport: Pair<Int, Int>? = null
@@ -785,8 +785,13 @@ internal object WebSession {
     @Volatile private var virtualButtonHandler: ((String) -> Unit)? = null
     fun setVirtualButtonHandler(handler: ((String) -> Unit)?) { virtualButtonHandler = handler }
     fun virtualButton(action: String) {
-        if (projectionSessions.snapshot()?.descriptor?.id != "carplay") return
-        mainHandler.post { touch.cancel(); virtualButtonHandler?.invoke(action) }
+        val session = projectionSessions.snapshot() ?: return
+        if (session.descriptor.id != "carplay" || !session.inputReady) return
+        mainHandler.post {
+            if (projectionSessions.snapshot() !== session || !session.inputReady) return@post
+            touch.cancel()
+            virtualButtonHandler?.invoke(action)
+        }
     }
 
     fun applySavedDisplay(context: Context) {
@@ -796,7 +801,7 @@ internal object WebSession {
         browserViewport = size
         // Only CarPlay negotiates these dimensions; other inputs keep their own display configuration.
         if (projectionSessions.snapshot()?.descriptor?.id?.let { it != "carplay" } == true) return
-        browserViewportListener?.invoke(size.first, size.second)
+        browserViewportListener?.invoke(size.first, size.second, true)
     }
 
     fun reportBrowserViewport(width: Int, height: Int): Boolean {
@@ -814,7 +819,7 @@ internal object WebSession {
         browserViewport = size
         // Resizing a Tesla browser must never interrupt a running projection.
         if (!projectionSessions.hasSession())
-            browserViewportListener?.invoke(size.first, size.second)
+            browserViewportListener?.invoke(size.first, size.second, false)
         return true
     }
 

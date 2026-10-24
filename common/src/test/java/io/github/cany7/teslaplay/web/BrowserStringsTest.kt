@@ -25,7 +25,7 @@ class BrowserStringsTest {
         assertEquals(
             """
                 <p>Pair &amp; start display</p>
-                <p>HTTPS is disabled. Enable it in the app&#39;s Web service settings.</p>
+                <p>HTTPS is off. Turn it on in the app under Tesla network and HTTPS.</p>
                 <p>%1${'$'}s%2${'$'}s · Touch connected</p>
                 <input pattern="[0-9]{6}">
                 <style>.screen { color: red; }</style>

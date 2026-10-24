@@ -285,7 +285,7 @@ export function createControlOutbox(socket, {
         if (kind === 'move' && tail && tail.kind === 'move' && tail.type === data.type && tail.eventKind === data.kind) tail.json = json;
         else if (touches.length < 64) touches.push({ kind, json, type: data.type, eventKind: data.kind });
         else { fail(); return false; }
-      } else if (['rtc-start', 'rtc-answer', 'rtc-ready', 'rtc-fallback', 'phone-connect', 'image-format', 'location-start', 'location-stop', 'location-clear', 'media-command'].includes(data.type)) {
+      } else if (['rtc-start', 'rtc-answer', 'rtc-ready', 'rtc-fallback', 'phone-connect', 'image-format', 'location-start', 'location-stop', 'location-clear', 'media-command', 'virtual-button'].includes(data.type)) {
         if (signals.length >= 8 || json.length > 32768) { fail(); return false; }
         if (data.type.startsWith('location-')) locationFix = null;
         signals.push(json);
@@ -676,7 +676,7 @@ export function createRtcReceiver(createRenderer, {
 }
 
 import { createDiagnostics } from './diagnostics.js';
-import { createDisplayMenu } from './display-menu.js';
+import { createVirtualButtons } from './virtual-buttons.js';
 import { createBrowserAudio } from './browser-audio.js';
 import { createBrowserLocation } from './browser-location.js';
 import { createBrowserMediaSession } from './browser-media-session.js';
@@ -963,7 +963,9 @@ if (typeof document !== 'undefined') {
     const scale = (window.devicePixelRatio || 1) * zoom;
     return browserViewportSize(rect.width * scale, rect.height * scale);
   }
-  const displayMenu = createDisplayMenu({ send, release, viewport: currentViewport });
+  const virtualButtons = createVirtualButtons({ element: $('virtual-buttons'), send, release,
+    onFailure: () => { $('status').textContent = $('stage').textContent = t('web_connection_interrupted_retrying'); },
+  });
   const browserMedia = createBrowserMediaSession({ send, onState: state => {
     nowPlaying.textContent = state?.available ? [state.title || state.appName, state.artist].filter(Boolean).join(' · ') : '';
   } });
@@ -1090,7 +1092,7 @@ if (typeof document !== 'undefined') {
     if (launchPresentation.ownsFullscreen && document.fullscreenElement) exitLaunchFullscreen();
   }
   function disconnect(refreshQr = true) {
-    displayMenu.connected(false);
+    virtualButtons.connected(false);
     stopQr();
     authGeneration++;
     restoreLaunchPresentation();
@@ -1166,8 +1168,8 @@ if (typeof document !== 'undefined') {
       $('phone-connect').disabled = false;
       $('phone-connect-message').textContent = t("web_keep_teslaplay_in_the_foreground_on_android_tap_connect");
       $('pairing').hidden = true; $('display').hidden = false; $('disconnect').hidden = false;
-      $('topbar').hidden = false;
-      displayMenu.connected(true);
+      $('topbar').hidden = $('hide-toolbar').checked || Boolean(launchPresentation?.immersive);
+      virtualButtons.connected(true);
       lastViewportSignature = '';
       scheduleViewportReport();
       $('status').textContent = t("web_connected_waiting_for_video");
@@ -1212,7 +1214,7 @@ if (typeof document !== 'undefined') {
           const message = data.message; disconnect(); $('message').textContent = message; return;
         }
         if (data.type === 'status') {
-          displayMenu.receive(data);
+          virtualButtons.receive(data);
           diagnostics.receive(data.deviceDiagnostics);
           performanceStats.source = data.performance?.source ?? null;
           performanceStats.transport = data.performance?.transport ?? null;
@@ -1266,7 +1268,7 @@ if (typeof document !== 'undefined') {
       if (socket !== ws) return;
       if (outbox) { outbox.close(); outbox = null; }
       cancelMove();
-      displayMenu.connected(false);
+      virtualButtons.connected(false);
       socket = null; pointers.clear(); desktop.release(false); pointerInput = false; keyboardInput = false;
       clearInterval(heartbeat); presentation.close(); cleanupRtc(); cleanupImage();
       browserMedia.close(); browserAudio.close(); $('audio-message').hidden = true;

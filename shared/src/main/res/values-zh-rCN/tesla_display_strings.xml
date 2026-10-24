@@ -1,6 +1,4 @@
 <resources>
-    <string name="tesla_menu">显示设置</string>
-    <string name="tesla_close">关闭</string>
     <string name="tesla_window_title">Tesla 画面尺寸</string>
     <string name="tesla_window_help">右侧窗口和大窗口分别保存，不改变 Tesla 自身窗口。未设置时，连接时采用浏览器区域。</string>
     <string name="tesla_window_mode">窗口类型</string>
@@ -25,7 +23,6 @@
     <string name="tesla_previous">上一曲</string>
     <string name="tesla_play">播放 / 暂停</string>
     <string name="tesla_next">下一曲</string>
-    <string name="tesla_revert">还原</string>
     <string name="tesla_virtual_buttons_description">在画面上显示主页、返回、Siri 和播放键。</string>
     <string name="tesla_auto">连接时采用浏览器区域</string>
     <string name="tesla_unsaved">未保存的修改</string>

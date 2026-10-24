@@ -54,8 +54,9 @@ class TeslaDisplayPreferencesTest {
         }
         assertTrue(projectionSessions.adopt(session, emptySet()))
         var applied: Pair<Int?, Int?>? = null
+        var explicit = false
         try {
-            WebSession.setBrowserViewportListener { w, h -> applied = w to h }
+            WebSession.setBrowserViewportListener { w, h, apply -> applied = w to h; explicit = apply }
             assertNull(applied) // Recreating an Activity must not apply its pending profile.
             Display.save(app, Display.Config(right = Display.Profile(1600, 1000), enabled = true))
             assertNull(applied)
@@ -63,6 +64,12 @@ class TeslaDisplayPreferencesTest {
             assertNull(applied)
             WebSession.applySavedDisplay(app)
             assertEquals(1600 to 1000, applied)
+            assertTrue(explicit)
+            WebSession.browserDisplayApplied(1600, 1000)
+            assertFalse(Display.pending(Display.load(app)))
+            Display.save(app, Display.load(app).copy(right = Display.Profile(1400, 900)))
+            assertTrue(Display.pending(Display.load(app)))
+            assertEquals(1600 to 1000, WebSession.appliedBrowserViewport)
         } finally {
             WebSession.setBrowserViewportListener(null)
             projectionSessions.ended(session)
@@ -83,7 +90,7 @@ class TeslaDisplayPreferencesTest {
         assertEquals(expected, WebSession.currentBrowserViewport)
         var applied: Pair<Int?, Int?>? = null
         try {
-            WebSession.setBrowserViewportListener { w, h -> applied = w to h }
+            WebSession.setBrowserViewportListener { w, h, _ -> applied = w to h }
             assertEquals(expected, applied)
             WebSession.applySavedDisplay(app)
             assertEquals(expected, applied)

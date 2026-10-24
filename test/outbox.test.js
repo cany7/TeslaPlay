@@ -114,3 +114,13 @@ test('desktop and touch share ordering without coalescing across key or release 
   f.socket.bufferedAmount = 0; f.advance(10);
   assert.deepEqual(f.sent, [pointer(0), pointer(99), key, touch(0.2), pointer(100), release]);
 });
+
+
+test('virtual shortcuts share the bounded signal queue and removed web settings are rejected', () => {
+  const f = fixture();
+  for (const type of ['display-save', 'display-apply', 'virtual-buttons']) assert.equal(f.outbox.send({ type }), false);
+  for (let i = 0; i < 8; i++) assert.equal(f.outbox.send({ type: 'virtual-button', action: 'home' }), true);
+  assert.equal(f.outbox.send({ type: 'virtual-button', action: 'back' }), false);
+  assert.equal(f.failures, 1); assert.equal(f.timers.size, 0);
+  f.socket.bufferedAmount = 0; f.advance(2000); assert.deepEqual(f.sent, []);
+});

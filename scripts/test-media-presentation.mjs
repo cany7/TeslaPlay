@@ -23,7 +23,7 @@ function image(width, height, codec = 'mjpeg') {
 const images = { jpeg: [image(320, 180), image(180, 320)], webp: [image(320, 180, 'libwebp'), image(180, 320, 'libwebp')] };
 let viewer, connections = 0, acks = 0, paused = false, sequence = 0, format = 'jpeg', jpegFallbacks = 0, webpProbes = 0;
 const pendingImages = new Map();
-const touches = [], errors = [], mediaCommands = [], desktopInputs = [];
+const touches = [], errors = [], mediaCommands = [], desktopInputs = [], shortcuts = [];
 let media = { type: 'status', mediaProtocol: 3, sessionId: 7, videoEpoch: 1, width: 320, height: 180,
   sourceState: 'ready', inputReady: true, streaming: true, stage: 'Synthetic browser test' };
 const server = http.createServer(async (req, res) => {
@@ -41,7 +41,7 @@ const server = http.createServer(async (req, res) => {
   if (req.url === '/i18n.js') {
     res.setHeader('Content-Type', 'text/javascript'); res.end(`globalThis.teslaplayMessages=${JSON.stringify(messages)};`); return;
   }
-  const file = { '/brand-storage.js': 'brand-storage.js', '/diagnostics.js': 'diagnostics.js', '/display-menu.js': 'display-menu.js', '/': 'index.html', '/app.js': 'app.js', '/desktop-input.js': 'desktop-input.js', '/text.js': 'text.js', '/browser-audio.js': 'browser-audio.js', '/browser-media-session.js': 'browser-media-session.js', '/browser-location.js': 'browser-location.js',
+  const file = { '/brand-storage.js': 'brand-storage.js', '/diagnostics.js': 'diagnostics.js', '/virtual-buttons.js': 'virtual-buttons.js', '/': 'index.html', '/app.js': 'app.js', '/desktop-input.js': 'desktop-input.js', '/text.js': 'text.js', '/browser-audio.js': 'browser-audio.js', '/browser-media-session.js': 'browser-media-session.js', '/browser-location.js': 'browser-location.js',
     '/style.css': 'style.css', '/audio-worklet.js': 'audio-worklet.js' }[req.url];
   if (!file) { res.writeHead(404); res.end(); return; }
   let body = await readFile(new URL(file, root));
@@ -81,6 +81,7 @@ wss.on('connection', ws => {
       if (connections === 1) frame();
     }
     if (message.type === 'touch') touches.push(message);
+    if (message.type === 'virtual-button') shortcuts.push(message.action);
     if (message.type === 'media-command') {
       mediaCommands.push(message);
       ws.send(JSON.stringify({ type: 'media-command-result', requestId: message.requestId, result: 'sent' }));
@@ -149,15 +150,29 @@ try {
     sourceState: 'ready', thermalStatus: null, socTemperatureC: null, tlsState: 'disabled' } });
   const displayBounds = () => evaluate(`JSON.stringify(document.getElementById('display').getBoundingClientRect().toJSON())`);
   const boundsBeforeDiagnostics = await displayBounds();
-  assert.equal(await evaluate(`document.getElementById('display-menu').contains(document.getElementById('projection-diagnostics'))`), true);
-  await evaluate(`document.getElementById('menu-handle').click(); document.getElementById('projection-diagnostics').open = true`);
+  assert.equal(await evaluate(`document.getElementById('virtual-buttons').hidden`), true);
+  status({ sourceId: 'carplay', displayPreferences: { buttons: true } });
+  await wait(`!document.getElementById('virtual-buttons').hidden && !document.querySelector('#virtual-buttons button').disabled`);
+  assert.equal(await displayBounds(), boundsBeforeDiagnostics, 'Showing shortcuts preserves projection bounds');
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('#virtual-buttons button')).every(b => b.getBoundingClientRect().height >= 48 && b.getBoundingClientRect().width >= 64)`), true);
+  await evaluate(`document.querySelectorAll('#virtual-buttons button').forEach(button => button.click())`);
+  for (let attempt = 0; shortcuts.length < 6 && attempt < 50; attempt++) await pause(20);
+  assert.deepEqual(shortcuts, ['home', 'back', 'siri', 'previous', 'play', 'next']);
+  status({ sourceId: 'vnc' });
+  await wait(`Array.from(document.querySelectorAll('#virtual-buttons button')).every(button => button.disabled)`);
+  status({ sourceId: 'carplay', displayPreferences: { buttons: false } });
+  await wait(`document.getElementById('virtual-buttons').hidden`);
+  assert.equal(await displayBounds(), boundsBeforeDiagnostics, 'Hiding shortcuts preserves projection bounds');
+  assert.equal(connections, 1, 'Shortcut visibility never reconnects');
+
+  assert.equal(await evaluate(`document.getElementById('pairing').contains(document.getElementById('projection-diagnostics'))`), true);
+  assert.equal(await evaluate(`document.getElementById('projection-diagnostics').open`), false);
+  assert.equal(await evaluate(`document.querySelectorAll('#display-menu,#menu-handle,#show-virtual-buttons').length`), 0);
+  await evaluate(`document.getElementById('projection-diagnostics').open = true`);
   await wait(`document.querySelector('#projection-diagnostics dl').textContent.includes('320 × 180')`);
   assert.equal(await evaluate(`Array.from(document.querySelectorAll('#projection-diagnostics dt')).find(e=>e.textContent.startsWith('SoC')).nextElementSibling.textContent`), '未知');
-  assert.equal(await evaluate(`document.getElementById('display-menu').hidden`), false);
-  assert.equal(await displayBounds(), boundsBeforeDiagnostics, 'Expanded diagnostics must overlay rather than resize projection');
-  await evaluate(`document.getElementById('menu-close').click()`);
-  assert.equal(await evaluate(`document.getElementById('display-menu').hidden`), true);
-  assert.equal(await displayBounds(), boundsBeforeDiagnostics, 'Closing diagnostics must preserve projection bounds');
+  assert.equal(await displayBounds(), boundsBeforeDiagnostics, 'Diagnostics on the pairing page must not resize projection');
+  await evaluate(`document.getElementById('projection-diagnostics').open = false`);
   await evaluate(`
     window.mediaHandlers = {};
     const originalActionHandler = MediaSession.prototype.setActionHandler;
@@ -306,7 +321,7 @@ try {
   frame(); await wait(showing);
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true, connections, imageAcks: acks, webpProbes, jpegFallbacks,
-    checks: ['menu opens/closes over live projection', 'diagnostics show received size and unknown SoC', 'diagnostics overlay preserves projection bounds', 'five-touch source', 'read-only source', 'WebP capability probe', 'WebP touch with zoom compensation', 'JPEG fallback after corrupt WebP', 'two-image pipeline with exact ACKs',
+    checks: ['ordinary topbar without settings overlay', 'phone-controlled shortcuts preserve bounds and roundtrip all actions', 'diagnostics show received size and unknown SoC', 'collapsed pairing-page diagnostics preserve projection bounds', 'five-touch source', 'read-only source', 'WebP capability probe', 'WebP touch with zoom compensation', 'JPEG fallback after corrupt WebP', 'two-image pipeline with exact ACKs',
       'decode without overlay flashes', 'gap releases touch', 'deadline without status', 'cancelled deadline',
       'same-size rebuild', 'cancelled mouse drag cannot cross video epochs', 'old frame rejection', 'rotation', 'real socket reconnect', 'native browser Media Session metadata and cover',
       'media action roundtrip', 'desktop right drag, scroll and versioned keyboard', 'desktop blur releases modifiers', 'phone-authoritative pause', 'capability-gated seek and final drag position', 'media cleanup and retired callback isolation'] }, null, 2));

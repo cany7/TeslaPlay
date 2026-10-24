@@ -21,6 +21,58 @@ import javax.net.ssl.HttpsURLConnection
 @RunWith(org.robolectric.RobolectricTestRunner::class)
 @org.robolectric.annotation.Config(qualifiers = "zh-rCN", sdk = [29])
 class LanWebServerTest {
+    @Test fun pairedVirtualShortcutsReachTheReadyCarPlayHandlerAndPhonePreferenceIsShared() {
+        val context = org.robolectric.RuntimeEnvironment.getApplication()
+        var ready = true
+        var sourceId = "carplay"
+        val actions = mutableListOf<String>()
+        val session = object : ProjectionSession {
+            override val descriptor get() = SourceDescriptor(sourceId, sourceId)
+            override val capabilities = ProjectionCapabilities(emptySet(), 2)
+            override val inputReady get() = ready
+            override fun touch(contacts: List<ProjectionContact>) = true
+            override fun stop() = java.util.concurrent.CompletableFuture.completedFuture(Unit)
+        }
+        assertTrue(projectionSessions.adopt(session, emptySet()))
+        WebSession.setVirtualButtonHandler { actions.add(it) }
+        WebSession.start(context)
+        try {
+            handshake(WebSession.code).use { client ->
+                assertTrue(readHeaders(client).startsWith("HTTP/1.1 101"))
+                fun status(): org.json.JSONObject {
+                    text(client, """{"type":"ping"}""")
+                    var data: org.json.JSONObject
+                    do { data = org.json.JSONObject(frame(client).toString(Charsets.UTF_8)) }
+                    while (data.optString("type") != "status")
+                    org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                    return data
+                }
+                assertFalse(status().getJSONObject("displayPreferences").getBoolean("buttons"))
+                TeslaDisplayPreferences.saveButtons(context, true)
+                assertTrue(status().getJSONObject("displayPreferences").getBoolean("buttons"))
+                val expected = listOf("home", "back", "siri", "previous", "play", "next")
+                expected.forEach { text(client, """{"type":"virtual-button","action":"$it"}""") }
+                status() // All preceding controls were received before this reply.
+                assertEquals(expected, actions)
+                ready = false
+                text(client, """{"type":"virtual-button","action":"home"}""")
+                status()
+                assertEquals(expected, actions)
+                ready = true
+                sourceId = "vnc"
+                text(client, """{"type":"virtual-button","action":"back"}""")
+                status()
+                assertEquals(expected, actions)
+                TeslaDisplayPreferences.saveButtons(context, false)
+                assertFalse(status().getJSONObject("displayPreferences").getBoolean("buttons"))
+            }
+        } finally {
+            WebSession.setVirtualButtonHandler(null)
+            WebSession.stop()
+            projectionSessions.ended(session)
+        }
+    }
+
     @Test fun pairedNowPlayingStreamsStateCommandsAndRevocableArtworkOverRealSockets() {
         val context = org.robolectric.RuntimeEnvironment.getApplication()
         val bytes = byteArrayOf(0xff.toByte(), 0xd8.toByte(), 1, 2, 3)
