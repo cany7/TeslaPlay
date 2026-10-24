@@ -45,7 +45,7 @@ class OemSettingsTest : ComposeSettingsTest() {
         }
 
     private fun openSettings(activity: TeslaPlayActivity) {
-        SettingsNavigation.open(activity, "车厂与定位", compose)
+        SettingsNavigation.open(activity, "定位设置", compose)
     }
 
     private fun png(width: Int = 64, height: Int = 64): ByteArray {
@@ -61,36 +61,20 @@ class OemSettingsTest : ComposeSettingsTest() {
     }
 
     @Test
-    fun legacyDefaultMigratesOnceAndExplicitBydSurvivesReload() {
-        context
-            .getSharedPreferences("xcertplay_airplay", 0)
-            .edit()
-            .putString("oem_label", "BYD")
-            .commit()
-        assertEquals("NIO", AirPlayPersistence.loadSimulatedManufacturerName(context))
-        AirPlayPersistence.saveSimulatedManufacturerName(context, " BYD ")
-        repeat(2) { assertEquals("BYD", AirPlayPersistence.loadSimulatedManufacturerName(context)) }
-        AirPlayPersistence.saveSimulatedManufacturerName(context, "   ")
-        assertEquals("NIO", AirPlayPersistence.loadSimulatedManufacturerName(context))
+    fun oldManufacturerOverrideIsPreservedButNeverAdvertised() {
+        val preferences = context.getSharedPreferences("teslaplay_airplay", 0)
+        preferences.edit().putString("oem_label", "BYD").commit()
+        assertEquals("Tesla", AirPlayPersistence.loadSimulatedManufacturerName(context))
+        AirPlayPersistence.saveSimulatedManufacturerName(context, "Custom car")
+        assertEquals("Tesla", AirPlayPersistence.loadSimulatedManufacturerName(context))
     }
 
     @Test
-    fun interruptedIconWriteRecoversLastCompleteImageAndResetRemovesIt() {
+    fun phoneConfigurationUsesTeslaAndPackagedIconDespiteOldOverrides() {
         val original = png()
-        AirPlayPersistence.saveCustomAirPlayIcon(context, original)
-        val file = AirPlayPersistence.loadCustomAirPlayIconFile(context)!!
-        AtomicFile(file).startWrite().use { it.write(byteArrayOf(1, 2, 3)) }
-        assertArrayEquals(
-            original,
-            AirPlayPersistence.loadCustomAirPlayIconFile(context)!!.readBytes(),
-        )
-        AirPlayPersistence.clearCustomAirPlayIcon(context)
-        assertNull(AirPlayPersistence.loadCustomAirPlayIconFile(context))
-    }
-
-    @Test
-    fun phoneConfigurationAdvertisesCustomNameAndIcon() {
-        val original = png()
+        context.getSharedPreferences("teslaplay_airplay", 0).edit().putInt("display_scale_tenths", 6).commit()
+        AirPlayPersistence.saveManualHotspotSsid(context, "TeslaPlay test hotspot")
+        AirPlayPersistence.saveManualHotspotPassphrase(context, "testpass123")
         AirPlayPersistence.saveSimulatedManufacturerName(context, "比亚迪")
         AirPlayPersistence.saveCustomAirPlayIcon(context, original)
         // Build the real phone configuration without starting Bluetooth/USB or a session.
@@ -112,172 +96,31 @@ class OemSettingsTest : ComposeSettingsTest() {
                 .getDeclaredMethod("createAirPlayConfig", sizeType)
                 .apply { isAccessible = true }
                 .invoke(host, size) as AirPlayConfig
+        assertEquals(1280, config.main.widthPixels)
+        assertEquals(720, config.main.heightPixels)
         val runtime =
             type.getDeclaredMethod("createRuntimeConfig").apply { isAccessible = true }.invoke(host)
                 as CarPlayRuntimeConfig
-        assertEquals("比亚迪", runtime.identification.manufacturer)
+        assertEquals("Tesla", runtime.identification.manufacturer)
         val info = AirPlayInfoPlist.build(config)
-        assertEquals("比亚迪", info["oemIconLabel"])
+        assertEquals("Tesla", info["oemIconLabel"])
         val icon = (info["oemIcons"] as List<*>).single() as Map<*, *>
-        assertEquals(64, icon["widthPixels"])
-        assertEquals(64, icon["heightPixels"])
-        assertArrayEquals(original, icon["imageData"] as ByteArray)
+        assertEquals(512, icon["widthPixels"])
+        assertEquals(512, icon["heightPixels"])
+        assertFalse(original.contentEquals(icon["imageData"] as ByteArray))
     }
 
     @Test
-    fun nameEditorPersistsAndNewSettingsScreenShowsSavedName() {
+    fun vehiclePageKeepsLocationAndRemovesBrandEditors() {
         val controller = Robolectric.buildActivity(TeslaPlayActivity::class.java).setup()
-        openSettings(controller.get())
-        clickTag("text:OEM_NAME")
-        input("  比亚迪  ")
-        saveInput()
-        assertEquals("比亚迪", AirPlayPersistence.loadSimulatedManufacturerName(context))
-        controller.pause().stop().destroy()
-        val next = Robolectric.buildActivity(TeslaPlayActivity::class.java).setup()
         try {
-            openSettings(next.get())
-            compose.onNodeWithTag("text:OEM_NAME").assertTextContains("比亚迪")
-        } finally {
-            next.pause().stop().destroy()
-        }
-    }
-
-    @Test
-    fun previewAndIndependentIconResetKeepCustomNameAndConfirmedResetRestoresBoth() {
-        AirPlayPersistence.saveSimulatedManufacturerName(context, "Custom car")
-        AirPlayPersistence.saveCustomAirPlayIcon(context, png())
-        val controller = Robolectric.buildActivity(TeslaPlayActivity::class.java).setup()
-        val activity = controller.get()
-        try {
-            openSettings(activity)
-            compose.waitUntil(8_000) {
-                compose
-                    .onAllNodesWithContentDescription("CarPlay 车厂图标预览")
-                    .fetchSemanticsNodes()
-                    .isNotEmpty()
-            }
-            compose.onNodeWithText("恢复默认名称与图标").performScrollTo().performClick()
-            clickText("取消")
-            assertEquals("Custom car", AirPlayPersistence.loadSimulatedManufacturerName(context))
-            assertNotNull(AirPlayPersistence.loadCustomAirPlayIconFile(context))
-            compose.onNodeWithText("恢复默认图标").performScrollTo().performClick()
-            assertEquals("Custom car", AirPlayPersistence.loadSimulatedManufacturerName(context))
-            assertNull(AirPlayPersistence.loadCustomAirPlayIconFile(context))
-            compose.onNodeWithText("恢复默认图标").assertIsNotEnabled()
-            AirPlayPersistence.saveCustomAirPlayIcon(context, png())
-            controller.pause().resume()
-            compose.onNodeWithText("恢复默认名称与图标").performScrollTo().performClick()
-            clickText("确认")
-            assertEquals("NIO", AirPlayPersistence.loadSimulatedManufacturerName(context))
-            assertNull(AirPlayPersistence.loadCustomAirPlayIconFile(context))
-        } finally {
-            controller.pause().stop().destroy()
-        }
-    }
-
-    @Test
-    fun pickerRequestsOnlyImagesAndCancellationKeepsCurrentIcon() {
-        val original = png()
-        AirPlayPersistence.saveCustomAirPlayIcon(context, original)
-        val controller = Robolectric.buildActivity(TeslaPlayActivity::class.java).setup()
-        val activity = controller.get()
-        try {
-            openSettings(activity)
-            compose.onNodeWithText("选择车厂图标").performScrollTo().performClick()
-            val picker = shadowOf(activity).nextStartedActivity
-            assertEquals(Intent.ACTION_GET_CONTENT, picker.action)
-            assertEquals("image/*", picker.type)
-            shadowOf(activity).receiveResult(picker, Activity.RESULT_CANCELED, null)
-            assertArrayEquals(
-                original,
-                AirPlayPersistence.loadCustomAirPlayIconFile(context)!!.readBytes(),
-            )
-            assertNull(shadowOf(activity).nextStartedActivity)
-            compose.onNodeWithText("选择车厂图标").performScrollTo().performClick()
-            val nextPicker = shadowOf(activity).nextStartedActivity
-            val uri = Uri.parse("content://images/chosen.png")
-            shadowOf(activity).receiveResult(nextPicker, Activity.RESULT_OK, Intent().setData(uri))
-            val crop = shadowOf(activity).nextStartedActivity
-            assertEquals(ImageCropActivity::class.java.name, crop.component!!.className)
-            assertEquals(uri, crop.data)
-            assertTrue(crop.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
-            shadowOf(activity).receiveResult(crop, Activity.RESULT_CANCELED, null)
-            assertArrayEquals(
-                original,
-                AirPlayPersistence.loadCustomAirPlayIconFile(context)!!.readBytes(),
-            )
-        } finally {
-            controller.pause().stop().destroy()
-        }
-    }
-
-    private fun waitForText(activity: Activity, text: String) {
-        val deadline = System.nanoTime() + 8_000_000_000L
-        while (System.nanoTime() < deadline) {
-            shadowOf(android.os.Looper.getMainLooper()).idle()
-            if (
-                views(activity.window.decorView).filterIsInstance<TextView>().any {
-                    it.text.toString() == text
-                }
-            )
-                return
-            Thread.sleep(10)
-        }
-        fail("Image loading should complete: $text")
-    }
-
-    @Test
-    fun selectedImageIsCroppedToDurableSquarePngWithoutChangingName() {
-        AirPlayPersistence.saveSimulatedManufacturerName(context, "Custom car")
-        val source = File(context.cacheDir, "oem-source.png").apply { writeBytes(png(240, 120)) }
-        val controller =
-            Robolectric.buildActivity(
-                    ImageCropActivity::class.java,
-                    Intent().setData(Uri.fromFile(source)),
-                )
-                .setup()
-        val activity = controller.get()
-        val root = activity.findViewById<View>(android.R.id.content)
-        root.measure(
-            View.MeasureSpec.makeMeasureSpec(360, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY),
-        )
-        root.layout(0, 0, 360, 800)
-        waitForText(activity, "拖动调整位置，双指缩放；保存为正方形图标")
-        button(activity, "保存图标").performClick()
-        assertEquals(Activity.RESULT_OK, shadowOf(activity).resultCode)
-        source.delete()
-        val file = AirPlayPersistence.loadCustomAirPlayIconFile(context)!!
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(file.path, bounds)
-        assertEquals("image/png", bounds.outMimeType)
-        assertEquals(1024, bounds.outWidth)
-        assertEquals(1024, bounds.outHeight)
-        assertEquals("Custom car", AirPlayPersistence.loadSimulatedManufacturerName(context))
-        controller.pause().stop().destroy()
-    }
-
-    @Test
-    fun invalidImageOrCancelledCropDoesNotReplaceSavedIcon() {
-        val original = png()
-        AirPlayPersistence.saveCustomAirPlayIcon(context, original)
-        val source = File(context.cacheDir, "invalid-image.png").apply { writeText("not an image") }
-        val controller =
-            Robolectric.buildActivity(
-                    ImageCropActivity::class.java,
-                    Intent().setData(Uri.fromFile(source)),
-                )
-                .setup()
-        val activity = controller.get()
-        waitForText(activity, "无法读取图片，请返回重新选择 PNG 或 JPEG 图片")
-        button(activity, "保存图标").performClick()
-        assertFalse(activity.isFinishing)
-        button(activity, "取消").performClick()
-        assertEquals(Activity.RESULT_CANCELED, shadowOf(activity).resultCode)
-        assertArrayEquals(
-            original,
-            AirPlayPersistence.loadCustomAirPlayIconFile(context)!!.readBytes(),
-        )
-        controller.pause().stop().destroy()
+            openSettings(controller.get())
+            compose.onNodeWithText("OEM 车厂名称与图标").assertDoesNotExist()
+            compose.onNodeWithTag("toggle:NAVIGATION").assertDoesNotExist()
+            compose.onNodeWithTag("choice:LOCATION").assertExists()
+            compose.onNodeWithTag("text:OEM_NAME").assertDoesNotExist()
+            compose.onNodeWithTag("button:settings_select_icon").assertDoesNotExist()
+            compose.onNodeWithTag("button:settings_reset_branding").assertDoesNotExist()
+        } finally { controller.pause().stop().destroy() }
     }
 }

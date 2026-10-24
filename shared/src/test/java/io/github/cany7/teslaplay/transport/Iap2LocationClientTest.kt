@@ -66,7 +66,7 @@ class Iap2LocationClientTest {
         assertNotNull(component)
         val fields = parameters(component.payload)
         assertTrue(fields.single { it.id == 0 }.payload.contentEquals(byteArrayOf(0, 0)))
-        assertTrue(fields.single { it.id == 1 }.payload.contentEquals("xcertplay\u0000".encodeToByteArray()))
+        assertTrue(fields.single { it.id == 1 }.payload.contentEquals("teslaplay\u0000".encodeToByteArray()))
         assertTrue(fields.any { it.id == 17 && it.payload.isEmpty() })
         assertTrue(fields.any { it.id == 18 && it.payload.isEmpty() })
         assertTrue(0xfffb in u16Values(enabledParameters.single { it.id == 6 }.payload))
@@ -97,10 +97,10 @@ class Iap2LocationClientTest {
     }
 
     private fun wiredIdentification(locationInformationEnabled: Boolean) = Iap2IdentificationConfig(
-        name = "xcertplay",
-        modelIdentifier = "xcertplay",
-        manufacturer = "xcertplay",
-        serialNumber = "xcertplay",
+        name = "teslaplay",
+        modelIdentifier = "teslaplay",
+        manufacturer = "teslaplay",
+        serialNumber = "teslaplay",
         firmwareVersion = "1.0.0",
         hardwareVersion = "1.0",
         carPlayUsbInterfaceNumber = 3,

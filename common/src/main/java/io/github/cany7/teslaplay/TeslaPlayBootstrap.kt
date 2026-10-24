@@ -5,7 +5,7 @@ import io.github.cany7.teslaplay.airplay.AirPlayIdentity
 import io.github.cany7.teslaplay.orchestration.MfiTarget
 import java.security.MessageDigest
 
-/** Uses user-imported resources, with optional privately provisioned APK assets as a fallback. */
+/** Loads bundled authentication assets, preserving resources installed by an earlier version. */
 internal object TeslaPlayBootstrap {
     private val importInProgress = java.util.concurrent.atomic.AtomicBoolean(false)
     val importing: Boolean get() = importInProgress.get()

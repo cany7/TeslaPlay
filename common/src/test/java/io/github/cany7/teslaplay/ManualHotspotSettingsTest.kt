@@ -3,6 +3,7 @@ package io.github.cany7.teslaplay
 import androidx.compose.ui.test.*
 import io.github.cany7.teslaplay.orchestration.WirelessHotspotMode
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -19,6 +20,11 @@ import org.robolectric.util.ReflectionHelpers
 class ManualHotspotSettingsTest : ComposeSettingsTest() {
     private val context
         get() = RuntimeEnvironment.getApplication()
+
+    @Before fun beginWithExplicitWifiDirectChoice() {
+        TeslaDefaults.migrate(context)
+        AirPlayPersistence.saveWirelessHotspotMode(context, WirelessHotspotMode.WIFI_P2P)
+    }
 
     private val password = " password "
 

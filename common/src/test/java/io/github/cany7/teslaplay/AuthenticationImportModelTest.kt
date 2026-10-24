@@ -3,16 +3,8 @@ package io.github.cany7.teslaplay
 import android.content.Intent
 import android.net.Uri
 import android.os.Looper
-import android.view.View
-import android.view.ViewGroup
 import androidx.compose.ui.test.*
-import androidx.lifecycle.ViewModelProvider
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
@@ -54,23 +46,6 @@ class AuthenticationImportModelTest : ComposeSettingsTest() {
         fail("Import did not complete")
     }
 
-    private fun apk(identity: SyntheticMfiIdentity.Identity): ByteArray =
-        ByteArrayOutputStream()
-            .apply {
-                ZipOutputStream(this).use { zip ->
-                    for ((name, bytes) in
-                        mapOf(
-                            "identity.pk8" to identity.key,
-                            "certificate.p7b" to identity.certificate,
-                        )) {
-                        zip.putNextEntry(ZipEntry("assets/offline-mfi/$name"))
-                        zip.write(bytes)
-                        zip.closeEntry()
-                    }
-                }
-            }
-            .toByteArray()
-
     @Test
     fun manualImportEnablesBootstrapWithoutBundledAssets() {
         assertThrows(Exception::class.java) { TeslaPlayBootstrap.ensure(app) }
@@ -105,64 +80,19 @@ class AuthenticationImportModelTest : ComposeSettingsTest() {
     }
 
     @Test
-    fun retainedImportCompletesAfterSettingsActivityRecreation() {
-        val identity = SyntheticMfiIdentity.create()
-        val bytes = apk(identity)
-        val entered = CountDownLatch(1)
-        val release = CountDownLatch(1)
-        shadowOf(app.contentResolver).registerInputStreamSupplier(apkUri) {
-            object : ByteArrayInputStream(bytes) {
-                override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
-                    entered.countDown()
-                    check(release.await(5, TimeUnit.SECONDS))
-                    return super.read(buffer, offset, length)
-                }
-            }
-        }
-        val controller = Robolectric.buildActivity(TeslaPlayActivity::class.java).setup()
-        val model = ViewModelProvider(controller.get())[AuthenticationImportModel::class.java]
-        assertSame(app, model.getApplication<android.app.Application>())
-        try {
-            model.import(apk = apkUri)
-            assertTrue(entered.await(2, TimeUnit.SECONDS))
-            assertThrows(Exception::class.java) { TeslaPlayBootstrap.ensure(app) }
-            controller.recreate()
-            assertSame(
-                model,
-                ViewModelProvider(controller.get())[AuthenticationImportModel::class.java],
-            )
-        } finally {
-            release.countDown()
-            waitForCompletion(model)
-        }
-        fun views(view: View): List<View> =
-            listOf(view) +
-                if (view is ViewGroup)
-                    (0 until view.childCount).flatMap { views(view.getChildAt(it)) }
-                else emptyList()
-        TeslaPlayBootstrap.ensure(controller.get())
-        compose.onNodeWithText("资源已就绪 · 私钥与证书校验通过").assertExists()
-        assertNotNull(shadowOf(controller.get()).nextStartedService)
-        assertArrayEquals(identity.certificate, store.load().readCertificate())
-        val service = Robolectric.buildService(TeslaPlaySessionService::class.java).create()
-        service.get().onStartCommand(Intent(app, TeslaPlaySessionService::class.java), 0, 1)
-        assertTrue(io.github.cany7.teslaplay.web.WebSession.running)
-        service.destroy()
-        controller.pause().stop().destroy()
-    }
-
-    @Test
-    fun externalApkShareShowsSettingsAndWaitsForImportButton() {
+    fun externalApkShareDoesNotOfferOrStartAuthenticationImport() {
         val controller =
             Robolectric.buildActivity(
                     TeslaPlayActivity::class.java,
                     Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, apkUri),
                 )
                 .setup()
-        compose.onNodeWithText("从此 APK 导入认证资源？").assertExists()
+        compose.onNodeWithText("从此 APK 导入认证资源？").assertDoesNotExist()
         assertFalse(TeslaPlayBootstrap.importing)
         assertFalse(store.exists())
-        clickText("取消")
+        SettingsNavigation.open(controller.get(), "帮助与关于", compose)
+        compose.onNodeWithTag("settings:licenses").assertExists()
+        compose.onNodeWithText("从 DiPlay APK 导入").assertDoesNotExist()
         assertFalse(TeslaPlayBootstrap.importing)
         assertFalse(store.exists())
         controller.pause().stop().destroy()

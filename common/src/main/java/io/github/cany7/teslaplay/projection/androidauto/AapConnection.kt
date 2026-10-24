@@ -77,7 +77,7 @@ internal class AapUsbConnection(private val context: Context, private val device
         if (!isAccessory(selected)) {
             val version = ByteArray(2)
             check(link.controlTransfer(0xc0, 51, 0, 0, version, 2, 2000) == 2 && version[0].toInt() > 0) { "Phone does not support Android Open Accessory" }
-            listOf("Android", "Android Auto", "WheelPlay", "1.0", "https://github.com/fython/wheelplay", "WheelPlay").forEachIndexed { index, value ->
+            listOf("Android", "Android Auto", "TeslaPlay", "0.1.0", "https://github.com/cany7/TeslaPlay", "TeslaPlay").forEachIndexed { index, value ->
                 val bytes = (value + '\u0000').toByteArray(Charsets.UTF_8)
                 check(link.controlTransfer(0x40, 52, 0, index, bytes, bytes.size, 2000) == bytes.size)
             }

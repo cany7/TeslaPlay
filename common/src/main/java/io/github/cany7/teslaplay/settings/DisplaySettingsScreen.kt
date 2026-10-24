@@ -76,24 +76,36 @@ internal fun DisplaySettingsScreen(state: SettingsState, actions: SettingsAction
         StreamTechnology.entries.map { settingsString(it.labelRes) },
     )
     SettingsDescription(R.string.settings_stream_description)
-    SettingsChoice(
-        state, actions, ChoiceSetting.IMAGE_FORMAT, R.string.settings_image_format,
-        listOf("JPEG", "WebP"),
-    )
-    SettingsDescription(R.string.settings_image_format_description)
-    SettingsTextPreference(
-        actions, TextSetting.IMAGE_QUALITY, R.string.settings_image_quality,
-        state.imageQuality.toString(), numeric = true,
-    )
-    SettingsDescription(R.string.settings_image_quality_description)
-    SettingsChoice(
-        state,
-        actions,
-        ChoiceSetting.RECOVERY,
-        R.string.settings_recovery,
-        RtcRecoveryPolicy.entries.map { settingsString(it.labelRes) },
-    )
-    SettingsDescription(R.string.settings_recovery_description)
+    SettingsGroup(R.string.settings_image_compatibility) {
+        SettingsDescription(R.string.settings_image_compatibility_description)
+        SettingsChoice(
+            state, actions, ChoiceSetting.IMAGE_FORMAT, R.string.settings_image_format,
+            listOf("JPEG", "WebP"),
+        )
+        SettingsDescription(R.string.settings_image_format_description)
+        SettingsTextPreference(
+            actions, TextSetting.IMAGE_QUALITY, R.string.settings_image_quality,
+            state.imageQuality.toString(), numeric = true,
+        )
+        SettingsDescription(R.string.settings_image_quality_description)
+    }
+    if (state.choices[ChoiceSetting.STREAM] != StreamTechnology.JPEG.ordinal) {
+        var advanced by rememberSaveable { mutableStateOf(false) }
+        val searchTarget = LocalSettingsSearchTarget.current
+        LaunchedEffect(searchTarget) {
+            if (searchTarget == "choice:RECOVERY") advanced = true
+        }
+        SettingsRow(settingsString(R.string.settings_display_advanced), "", "settings:display-advanced") {
+            advanced = !advanced
+        }
+        if (advanced) {
+            SettingsChoice(
+                state, actions, ChoiceSetting.RECOVERY, R.string.settings_recovery,
+                RtcRecoveryPolicy.entries.map { settingsString(it.labelRes) },
+            )
+            SettingsDescription(R.string.settings_recovery_description)
+        }
+    }
     SettingsToggle(
         state,
         actions,

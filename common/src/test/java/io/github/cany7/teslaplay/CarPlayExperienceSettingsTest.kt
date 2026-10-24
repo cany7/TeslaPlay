@@ -45,7 +45,7 @@ class CarPlayExperienceSettingsTest : ComposeSettingsTest() {
             when (title) {
                 "音频输出" -> "音频与麦克风" to "choice:AUDIO_OUTPUT"
                 "麦克风来源" -> "音频与麦克风" to "choice:MICROPHONE"
-                "浏览器离线后的处理" -> "浏览器设备" to "choice:OFFLINE"
+                "浏览器离线后的处理" -> "浏览器设置" to "choice:OFFLINE"
                 "画面安全区域" -> "画面与串流" to "settings:safe-area"
                 else -> "画面与串流" to "choice:APPEARANCE"
             }
@@ -116,9 +116,9 @@ class CarPlayExperienceSettingsTest : ComposeSettingsTest() {
         val controller = Robolectric.buildActivity(TeslaPlayActivity::class.java).setup()
         val activity = controller.get()
         openSettings(activity)
-        choose(activity, "CarPlay 昼夜模式", 2)
+        choose(activity, "外观", 2)
         assertEquals(CarPlayAppearance.NIGHT, AirPlayPersistence.loadAppearance(context))
-        choose(activity, "CarPlay 昼夜模式", 1, save = false)
+        choose(activity, "外观", 1, save = false)
         assertEquals(CarPlayAppearance.NIGHT, AirPlayPersistence.loadAppearance(context))
         choose(activity, "音频输出", 1)
         assertTrue(AirPlayPersistence.loadBrowserAudioPlayback(context))
@@ -136,7 +136,7 @@ class CarPlayExperienceSettingsTest : ComposeSettingsTest() {
         controller.pause().stop().destroy()
         val next = Robolectric.buildActivity(TeslaPlayActivity::class.java).setup()
         openSettings(next.get())
-        row(next.get(), "CarPlay 昼夜模式").assertTextContains("始终夜间")
+        row(next.get(), "外观").assertTextContains("始终夜间")
         row(next.get(), "麦克风来源").assertTextContains("禁用麦克风")
         next.pause().stop().destroy()
         WebSession.setMicrophoneSource(context, CarPlayMicrophoneSource.ANDROID)

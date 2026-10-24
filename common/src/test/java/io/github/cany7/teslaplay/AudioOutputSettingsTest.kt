@@ -105,7 +105,7 @@ class AudioOutputSettingsTest : ComposeSettingsTest() {
                     Column { AudioSettingsScreen(state, actions { _, _ -> }) }
                 }
             }
-            compose.onNodeWithTag("choice:AUDIO_OUTPUT").assertTextContains("Android 设备")
+            compose.onNodeWithTag("choice:AUDIO_OUTPUT").assertTextContains("手机（Android）")
             compose.onNodeWithText("当前麦克风：由 iPhone 管理").assertExists()
             compose.onNodeWithTag("choice:MICROPHONE").assertDoesNotExist()
             compose.onNodeWithTag("choice:AUDIO_BUFFER").assertDoesNotExist()

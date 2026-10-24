@@ -19,10 +19,12 @@ class LocationSourceSettingsTest : ComposeSettingsTest() {
         get() = RuntimeEnvironment.getApplication()
 
     private fun withSettings(block: (TeslaPlayActivity) -> Unit) {
+        // This test concerns location choices; use Root routing to exclude VPN consent.
+        context.getSharedPreferences("tesla_http", 0).edit().putString("mode", "ROOT").commit()
         val controller = Robolectric.buildActivity(TeslaPlayActivity::class.java).setup()
         try {
             val activity = controller.get()
-            SettingsNavigation.open(activity, "车厂与定位", compose)
+            SettingsNavigation.open(activity, "定位设置", compose)
             block(activity)
             assertNull(shadowOf(activity).nextStartedActivity)
             assertNull(shadowOf(activity).lastRequestedPermission)

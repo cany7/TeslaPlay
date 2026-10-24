@@ -10,10 +10,10 @@ class Iap2RouteGuidanceSubscriptionTest {
     @Test
     fun identificationDeclaresRouteGuidanceDisplayComponent() {
         val config = Iap2IdentificationConfig(
-            name = "xcertplay",
-            modelIdentifier = "xcertplay",
-            manufacturer = "xcertplay",
-            serialNumber = "xcertplay",
+            name = "teslaplay",
+            modelIdentifier = "teslaplay",
+            manufacturer = "teslaplay",
+            serialNumber = "teslaplay",
             firmwareVersion = "1.0.0",
             hardwareVersion = "1.0",
             carPlayUsbInterfaceNumber = 3,

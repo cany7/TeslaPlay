@@ -44,8 +44,8 @@ data class AirPlayConfig(
     val disableAudioOutput: Boolean = false,
     val microphone: Boolean = false,
     val microphoneOpus: Boolean = true,
-    val manufacturer: String = "xcertplay",
-    val model: String = "xcertplay",
-    val oemLabel: String = "xcertplay",
+    val manufacturer: String = "teslaplay",
+    val model: String = "teslaplay",
+    val oemLabel: String = "teslaplay",
     val icons: List<AirPlayIcon> = emptyList(),
 )

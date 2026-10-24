@@ -18,6 +18,7 @@ internal object BrowserStrings {
             "web_diag_disconnected" to UiR.string.web_diag_disconnected,
             "web_diag_failed" to UiR.string.web_diag_failed,
             "web_diag_closed" to UiR.string.web_diag_closed,
+
             "tesla_revert" to UiR.string.tesla_revert,
             "tesla_virtual_buttons_description" to UiR.string.tesla_virtual_buttons_description,
             "tesla_auto" to UiR.string.tesla_auto,
@@ -27,6 +28,7 @@ internal object BrowserStrings {
             "tesla_custom_size" to UiR.string.tesla_custom_size,
             "tesla_size_help" to UiR.string.tesla_size_help,
             "web_h264_fallback" to UiR.string.web_h264_fallback,
+            "web_image_fallback" to UiR.string.web_image_fallback,
             "web_diag_title" to UiR.string.web_diag_title,
             "web_diag_unknown" to UiR.string.web_diag_unknown,
             "web_diag_service" to UiR.string.web_diag_service,
@@ -50,6 +52,7 @@ internal object BrowserStrings {
             "web_diag_certificate" to UiR.string.web_diag_certificate,
             "web_diag_sample" to UiR.string.web_diag_sample,
             "web_diag_stale" to UiR.string.web_diag_stale,
+
             "web_car_bluetooth_audio" to UiR.string.web_car_bluetooth_audio,
             "tesla_menu" to UiR.string.tesla_menu,
             "tesla_close" to UiR.string.tesla_close,
@@ -77,6 +80,7 @@ internal object BrowserStrings {
             "tesla_previous" to UiR.string.tesla_previous,
             "tesla_play" to UiR.string.tesla_play,
             "tesla_next" to UiR.string.tesla_next,
+
             "web_location_title" to UiR.string.web_location_title,
             "web_location_help" to UiR.string.web_location_help,
             "web_location_https" to UiR.string.web_location_https,
@@ -137,13 +141,10 @@ internal object BrowserStrings {
                 UiR.string.web_keep_teslaplay_in_the_foreground_on_android_tap_connect,
             "web_connected_waiting_for_video" to UiR.string.web_connected_waiting_for_video,
             "web_waiting_for_iphone_video" to UiR.string.web_waiting_for_iphone_video,
-            "web_fallback" to UiR.string.web_fallback,
             "web_transport_touch_connected" to UiR.string.web_transport_touch_connected,
             "web_waiting_for_recovery" to UiR.string.web_waiting_for_recovery,
             "web_connected_waiting_for_iphone_video" to
                 UiR.string.web_connected_waiting_for_iphone_video,
-            "web_waiting_for_iphone_touch_input" to UiR.string.web_waiting_for_iphone_touch_input,
-            "web_jpeg_touch_connected" to UiR.string.web_jpeg_touch_connected,
             "web_could_not_connect" to UiR.string.web_could_not_connect,
             "web_check_that_the_server_is_running_and_the_pairing" to
                 UiR.string.web_check_that_the_server_is_running_and_the_pairing,
@@ -194,10 +195,6 @@ internal object BrowserStrings {
                 UiR.string.web_hide_top_bar_enter_full_screen_on_start,
             "web_enter_full_screen_when_starting_and_hide_the_top" to
                 UiR.string.web_enter_full_screen_when_starting_and_hide_the_top,
-            "web_display_video_with_canvas_experimental" to
-                UiR.string.web_display_video_with_canvas_experimental,
-            "web_decode_video_offscreen_then_draw_it_on_a_canvas" to
-                UiR.string.web_decode_video_offscreen_then_draw_it_on_a_canvas,
             "web_video_renderer_title" to UiR.string.web_video_renderer_title,
             "web_video_renderer_native" to UiR.string.web_video_renderer_native,
             "web_video_renderer_native_description" to UiR.string.web_video_renderer_native_description,

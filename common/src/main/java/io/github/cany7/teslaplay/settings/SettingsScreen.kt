@@ -29,14 +29,23 @@ internal fun SettingsTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme =
             darkColorScheme(
-                primary = Color(0xffb4d9b1),
-                onPrimary = Color(0xff20391f),
-                background = Color(0xff11161a),
-                surface = Color(0xff11161a),
-                surfaceContainer = Color(0xff1c2428),
-                onSurface = Color(0xffe2e8e3),
-                onSurfaceVariant = Color(0xffc1c9be),
-                outline = Color(0xff8b9389),
+                primary = Color.White, onPrimary = Color.Black,
+                primaryContainer = Color(0xff333333), onPrimaryContainer = Color.White,
+                secondary = Color(0xffdddddd), onSecondary = Color.Black,
+                secondaryContainer = Color(0xff333333), onSecondaryContainer = Color.White,
+                tertiary = Color(0xffcccccc), onTertiary = Color.Black,
+                tertiaryContainer = Color(0xff333333), onTertiaryContainer = Color.White,
+                background = Color(0xff111111), onBackground = Color.White,
+                surface = Color(0xff111111), onSurface = Color(0xffeeeeee),
+                surfaceVariant = Color(0xff333333), onSurfaceVariant = Color(0xffbbbbbb),
+                surfaceContainer = Color(0xff222222), surfaceContainerLow = Color(0xff191919),
+                surfaceContainerHigh = Color(0xff292929), surfaceContainerHighest = Color(0xff333333),
+                surfaceContainerLowest = Color.Black, surfaceTint = Color.White,
+                outline = Color(0xff888888), outlineVariant = Color(0xff444444),
+                error = Color.White, onError = Color.Black,
+                errorContainer = Color(0xff333333), onErrorContainer = Color.White,
+                inverseSurface = Color(0xffeeeeee), inverseOnSurface = Color.Black,
+                inversePrimary = Color.Black,
             ),
         content = content,
     )
@@ -152,9 +161,6 @@ internal fun SettingsScreen(
                                 SettingsCategory.VEHICLE -> VehicleSettingsScreen(state, actions)
                                 SettingsCategory.BROWSER -> BrowserSettingsScreen(state, actions)
                                 SettingsCategory.WEB -> WebSettingsScreen(state, actions)
-                                SettingsCategory.TESLA -> TeslaSettingsScreen(state, actions)
-                                SettingsCategory.AUTHENTICATION ->
-                                    AuthenticationSettingsScreen(state, actions)
                                 SettingsCategory.HELP -> HelpSettingsScreen(state, actions)
                             }
                         }
@@ -172,20 +178,6 @@ private fun SettingsIndexScreen(
     actions: SettingsActions,
     onCategory: (SettingsCategory?) -> Unit,
 ) {
-    Card(
-        onClick = { actions.command(SettingsCommand.DIPLAY) },
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-        colors =
-            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-    ) {
-        Column(Modifier.padding(20.dp)) {
-            Text(
-                settingsString(R.string.settings_diplay_title),
-                style = MaterialTheme.typography.titleLarge,
-            )
-            SettingsDescription(R.string.settings_diplay_description)
-        }
-    }
     SettingsCategory.entries.forEach { category ->
         Row(
             Modifier.fillMaxWidth()
@@ -198,14 +190,7 @@ private fun SettingsIndexScreen(
             Column(Modifier.weight(1f).padding(end = 16.dp)) {
                 Text(settingsString(category.title), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    settingsString(
-                        if (
-                            category == SettingsCategory.AUTHENTICATION &&
-                                state.runtime.authenticationError != null
-                        )
-                            R.string.settings_auth_missing_summary
-                        else category.summary
-                    ),
+                    settingsString(category.summary),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

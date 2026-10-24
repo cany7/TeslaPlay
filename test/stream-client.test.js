@@ -361,7 +361,7 @@ test('Canvas WebRTC handles touch, late JPEG loads, and reconnection without lea
   f.pointer('pointerdown', 100, 'touch-surface'); f.pointer('pointerup', 100, 'touch-surface');
   assert.deepEqual(ws.sent.filter(m => m.type === 'touch').map(m => m.contacts[0].down), [true, false]);
   ws.onmessage({ data: JSON.stringify({ type: 'status', width: 1280, height: 720, streaming: true, rtcAvailable: true }) });
-  assert.match(f.element('status').textContent, /WebRTC \/ 兼容 Canvas/);
+  assert.match(f.element('status').textContent, /WebRTC \/ Canvas 绘制/);
   const lateFrames = [...f.videoCallbacks.values()], lateRefresh = [...f.raf.values()];
   ws.close(); assert.equal(f.element('video-canvas').hidden, true);
   assert.equal(f.videoCallbacks.size, 0); assert.equal(f.raf.size, 0);
@@ -757,7 +757,7 @@ test('unsupported Direct Canvas skips rtc-start and handles an unexpected offer 
   for (let i = 0; i < 3; i++) ws.onmessage({ data: JSON.stringify({ type: 'status', streaming: true, rtcAvailable: true }) });
   assert.equal(ws.sent.some(m => m.type === 'rtc-start'), false);
   f.frame(ws);
-  assert.match(f.element('status').textContent, /直接 Canvas 不可用/);
+  assert.match(f.element('status').textContent, /Canvas 直绘不可用/);
   ws.onmessage({ data: JSON.stringify({ type: 'rtc-offer', id: 9, sdp: 'offer' }) });
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(ws.sent.filter(m => m.type === 'rtc-fallback').length, 1);

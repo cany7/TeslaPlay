@@ -2,11 +2,26 @@ package io.github.cany7.teslaplay.airplay
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AirPlayInfoPlistTest {
+    @Test fun externalAudioOmitsAllPlaybackAndVoiceFormatsWithoutChangingVideo() {
+        val config = AirPlayConfig("test", "02:00:00:00:00:02", "02:00:00:00:00:02", sourceVersion = "950.7.1",
+            main = AirPlayDisplayConfig(widthPixels = 1280, heightPixels = 720, fps = 60),
+            hevc = true, microphone = true)
+        val original = AirPlayInfoPlist.build(config)
+        val bluetooth = AirPlayInfoPlist.build(config.copy(disableAudioOutput = true, microphone = false))
+        assertFalse(bluetooth.containsKey("audioFormats"))
+        assertFalse(bluetooth.containsKey("audioLatencies"))
+        assertTrue(bluetooth.containsKey("hevcInfo"))
+        assertEquals(original["displays"], bluetooth["displays"])
+        assertNotEquals(original["features"], bluetooth["features"])
+        assertTrue(AirPlayInfoPlist.build(config).containsKey("audioFormats"))
+    }
+
     @Test
     fun defaultDisplayIncludesFullViewAndSafeAreas() {
         val info = AirPlayInfoPlist.build(
@@ -88,13 +103,13 @@ class AirPlayInfoPlistTest {
                 sourceVersion = "366.0",
                 main = AirPlayDisplayConfig(widthPixels = 1280, heightPixels = 720),
                 icons = listOf(AirPlayIcon(1, 1, iconBytes)),
-                oemLabel = "xcertplay",
+                oemLabel = "teslaplay",
             ),
         )
 
         val icon = (info["oemIcons"] as List<*>).single() as Map<*, *>
         assertEquals(true, info["oemIconVisible"])
-        assertEquals("xcertplay", info["oemIconLabel"])
+        assertEquals("teslaplay", info["oemIconLabel"])
         assertEquals(1, icon["widthPixels"])
         assertEquals(1, icon["heightPixels"])
         assertTrue((icon["imageData"] as ByteArray).contentEquals(iconBytes))

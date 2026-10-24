@@ -19,6 +19,8 @@ import org.robolectric.annotation.Config
 class ServerNavigationTest : ComposeSettingsTest() {
     @org.junit.Before
     fun provisionAuthentication() {
+        org.robolectric.RuntimeEnvironment.getApplication().getSharedPreferences("tesla_http", 0)
+            .edit().putString("mode", "ROOT").commit()
         val identity = SyntheticMfiIdentity.create()
         MfiAssetStore(org.robolectric.RuntimeEnvironment.getApplication().noBackupFilesDir)
             .installFiles({ identity.key.inputStream() }, { identity.certificate.inputStream() })

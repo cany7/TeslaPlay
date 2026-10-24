@@ -18,8 +18,6 @@ internal enum class SettingsCategory(
     VEHICLE(R.string.settings_vehicle, R.string.settings_vehicle_summary),
     BROWSER(R.string.settings_browser, R.string.settings_browser_summary),
     WEB(R.string.settings_tesla_network_title, R.string.settings_web_summary),
-    TESLA(R.string.settings_tesla, R.string.settings_tesla_summary),
-    AUTHENTICATION(R.string.settings_authentication, R.string.settings_authentication_summary),
     HELP(R.string.settings_help, R.string.settings_help_summary),
 }
 

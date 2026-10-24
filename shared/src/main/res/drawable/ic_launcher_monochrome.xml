@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Full adaptive canvas, with padding baked into pixels to survive launcher normalization. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/tesla_launcher_monochrome"
+    android:gravity="fill"
+    android:filter="true" />

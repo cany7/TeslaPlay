@@ -228,7 +228,7 @@ internal class ServerUi(private val context: Context) {
         private val layout = column()
         private var topInset = 0
         private val statusScrim = View(context).apply {
-            setBackgroundColor(Color.argb(224, 17, 22, 26))
+            setBackgroundColor(Color.argb(224, 21, 21, 21))
             alpha = 0f
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             isClickable = false
@@ -331,12 +331,12 @@ internal class ServerUi(private val context: Context) {
         }
     }
     companion object {
-        val BG = Color.rgb(17, 22, 26)
-        val SURFACE = Color.rgb(28, 36, 40)
-        val BORDER = Color.rgb(65, 73, 65)
-        val ACCENT = Color.rgb(180, 217, 177)
-        val TEXT = Color.rgb(226, 232, 227)
-        val MUTED = Color.rgb(193, 201, 190)
-        val WARNING = Color.rgb(239, 190, 144)
+        val BG = Color.rgb(21, 21, 21)
+        val SURFACE = Color.rgb(35, 35, 35)
+        val BORDER = Color.rgb(71, 71, 71)
+        val ACCENT = Color.rgb(206, 206, 206)
+        val TEXT = Color.rgb(230, 230, 230)
+        val MUTED = Color.rgb(199, 199, 199)
+        val WARNING = Color.rgb(197, 197, 197)
     }
 }

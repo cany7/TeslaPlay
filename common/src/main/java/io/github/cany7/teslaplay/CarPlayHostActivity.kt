@@ -968,13 +968,6 @@ class CarPlayHostActivity : ComponentActivity() {
             ).apply { topMargin = dp(12) },
         )
         content.addView(
-            buildAirPlayIconSection(),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(26) },
-        )
-        content.addView(
             buildDrivingSideSection(),
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -1541,16 +1534,7 @@ class CarPlayHostActivity : ComponentActivity() {
         val section = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
-        section.addView(
-            settingsInputRow(getString(UiR.string.host_simulated_manufacturer_name), simulatedManufacturerName) { value ->
-                simulatedManufacturerName = value
-                updateResolutionMenu()
-            },
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ),
-        )
+        section.addView(menuText("Tesla", 20f, MENU_SECONDARY))
         section.addView(
             settingsInputRow(getString(UiR.string.host_model), model) { value ->
                 model = value
@@ -2590,15 +2574,6 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     private fun loadAirPlayIcon(): AirPlayIcon {
-        val customBytes = try {
-            AirPlayPersistence.loadCustomAirPlayIconFile(this)?.readBytes()
-        } catch (_: Exception) {
-            null
-        }
-        if (customBytes != null) {
-            decodeAirPlayIcon(customBytes)?.let { return it }
-            AirPlayPersistence.clearCustomAirPlayIcon(this)
-        }
         return decodeAirPlayIcon(defaultAirPlayIconBytes())
             ?: throw IllegalStateException("Packaged AirPlay icon is invalid")
     }
@@ -2728,8 +2703,7 @@ class CarPlayHostActivity : ComponentActivity() {
         }
     }
 
-    private fun normalizedManufacturer(): String =
-        simulatedManufacturerName.trim().ifBlank { AirPlayPersistence.DEFAULT_SIMULATED_MANUFACTURER_NAME }
+    private fun normalizedManufacturer(): String = "Tesla"
 
     private fun normalizedModel(): String =
         model.trim().ifBlank { AirPlayPersistence.DEFAULT_MODEL }

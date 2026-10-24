@@ -59,7 +59,7 @@ class TeslaPlayActivity : AppCompatActivity() {
     private val ui by lazy { ServerUi(this) }
     private val handler = Handler(Looper.getMainLooper())
     private var page = "service"
-    private val sourceDetailPages = setOf("source-carplay", "source-android-auto", "source-iccoa", "source-vnc", "source-diagnostics")
+    private val sourceDetailPages = setOf("source-carplay", "source-android-auto", "source-vnc", "source-diagnostics")
     private val sourceStatuses = mutableMapOf<String, TextView>()
     private val sourceStopButtons = mutableMapOf<String, Button>()
     private val settingsModel by lazy { ViewModelProvider(this)[SettingsViewModel::class.java] }
@@ -151,12 +151,6 @@ class TeslaPlayActivity : AppCompatActivity() {
         if (uri != null) exportDiagnostics(uri)
     }
 
-    private val oemImagePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) runCatching {
-            oemImageCrop.launch(Intent(this, ImageCropActivity::class.java)
-                .setData(uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
-        }.onFailure { toast(getString(UiR.string.ui_could_not_open_the_icon_editor_try_again)) }
-    }
     private val exportSettings = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) Thread({
             val result = runCatching {
@@ -165,31 +159,6 @@ class TeslaPlayActivity : AppCompatActivity() {
             }
             runOnUiThread { toast(getString(if (result.isSuccess) R.string.tesla_backup_exported else R.string.tesla_backup_export_failed)) }
         }, "settings-export").start()
-    }
-    private val oemImageCrop = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-            render()
-            toast(getString(UiR.string.ui_vehicle_icon_saved_applies_on_the_next_iphone_connection))
-        }
-    }
-
-    private val authenticationImport by lazy {
-        ViewModelProvider(this, ViewModelProvider.AndroidViewModelFactory(application))[AuthenticationImportModel::class.java]
-    }
-    private var selectedPrivateKey: Uri? = null
-    private val selectAuthenticationKey = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            selectedPrivateKey = uri
-            launchAuthenticationPicker { selectAuthenticationCertificate.launch(arrayOf("*/*")) }
-        }
-    }
-    private val selectAuthenticationCertificate = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        val key = selectedPrivateKey
-        selectedPrivateKey = null
-        if (uri != null && key != null) authenticationImport.import(key = key, certificate = uri)
-    }
-    private val selectAuthenticationApk = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) authenticationImport.import(apk = uri)
     }
     private val importSettings = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) Thread({
@@ -259,25 +228,12 @@ class TeslaPlayActivity : AppCompatActivity() {
         io.github.cany7.teslaplay.hud.BydNavigationOutputs.onAppOpened(applicationContext)
         ServerWindow.showSystemBars(window)
         refreshAuthentication()
-        selectedPrivateKey = savedInstanceState?.getString("selectedPrivateKey")?.let(Uri::parse)
         awaitingTeslaVpnConsent = savedInstanceState?.getBoolean("awaitingTeslaVpnConsent") ?: false
         page = savedInstanceState?.getString("page") ?: intent.getStringExtra("page")
-            ?: if (setupError == null) "service" else "settings"
-        if (savedInstanceState == null && page == "settings" && setupError != null) {
-            settingsModel.open(SettingsCategory.AUTHENTICATION)
-        }
+            ?: "service"
         createShell()
         startWebServiceIfReady()
         handleWirelessRecovery()
-        authenticationImport.state.observe(this) { state ->
-            refreshAuthentication()
-            render(); refreshService()
-            state.result?.let {
-                startWebServiceIfReady()
-                toast(it); authenticationImport.consumeResult()
-            }
-        }
-        if (savedInstanceState == null) handleAuthenticationIntent(intent)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when {
@@ -292,11 +248,10 @@ class TeslaPlayActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent); setIntent(intent)
-        if (!handleAuthenticationIntent(intent)) navigate(intent.getStringExtra("page") ?: "service")
+        navigate(intent.getStringExtra("page") ?: "service")
     }
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("page", page)
-        outState.putString("selectedPrivateKey", selectedPrivateKey?.toString())
         outState.putBoolean("awaitingTeslaVpnConsent", awaitingTeslaVpnConsent)
         super.onSaveInstanceState(outState)
     }
@@ -319,7 +274,7 @@ class TeslaPlayActivity : AppCompatActivity() {
         if (initialLaunch) {
             initialLaunch = false
             if (TeslaHttpCompatibility.config(this).mode == TeslaHttpMode.VPN) setTeslaHttpEnabled(true)
-            if (setupError == null && !TeslaPlayBootstrap.importing && selectedPrivateKey == null &&
+            if (setupError == null && !TeslaPlayBootstrap.importing &&
                 intent.action != Intent.ACTION_SEND && intent.action != Intent.ACTION_VIEW &&
                 !projectionSessions.hasSession() &&
                 TeslaPlayPreferences.autoConnect(this) && intent.getStringExtra("page") == null) {
@@ -342,7 +297,7 @@ class TeslaPlayActivity : AppCompatActivity() {
     private fun navigate(destination: String) {
         val target = normalizedPage(destination)
         if (target == "settings") {
-            settingsModel.open(if (setupError != null) SettingsCategory.AUTHENTICATION else null)
+            settingsModel.open(null)
         }
         shell.select(target)
         page = target
@@ -370,7 +325,6 @@ class TeslaPlayActivity : AppCompatActivity() {
         shell.put("phone", ui.content(::sourceIndex))
         shell.put("source-carplay", ui.content(::carPlaySource))
         shell.put("source-android-auto", ui.content(::androidAutoSource))
-        shell.put("source-iccoa", ui.content(::iccoaSource))
         shell.put("source-vnc", ui.content(::vncSource))
         shell.put("source-diagnostics", ui.content(::diagnosticSources))
         refreshStatus()
@@ -491,9 +445,9 @@ class TeslaPlayActivity : AppCompatActivity() {
             SettingsCommand.REQUEST_ROOT -> configureWeb(getString(UiR.string.ui_root_access_granted)) { RootAccess.request()?.resolve(this).also { TeslaHttpCompatibility.retry() } }
             SettingsCommand.RETRY_ROOT -> TeslaHttpCompatibility.retry()
             SettingsCommand.ENABLE_VPN -> setTeslaHttpEnabled(true)
-            SettingsCommand.SELECT_ICON -> oemImagePicker.launch("image/*")
-            SettingsCommand.IMPORT_APK -> if (canImportAuthentication()) launchAuthenticationPicker { selectAuthenticationApk.launch(arrayOf("*/*")) }
-            SettingsCommand.IMPORT_FILES -> if (canImportAuthentication()) launchAuthenticationPicker { selectAuthenticationKey.launch(arrayOf("*/*")) }
+            SettingsCommand.SELECT_ICON -> Unit
+            SettingsCommand.IMPORT_APK -> Unit
+            SettingsCommand.IMPORT_FILES -> Unit
             SettingsCommand.SELECT_PEM -> pemCertificatePicker.launch(arrayOf("*/*"))
             SettingsCommand.SELECT_PKCS12 -> pkcs12Picker.launch(arrayOf("*/*"))
             SettingsCommand.APP_PERMISSIONS -> openSystem(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
@@ -507,7 +461,7 @@ class TeslaPlayActivity : AppCompatActivity() {
             SettingsCommand.IMPORT_SETTINGS -> importSettings.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
             SettingsCommand.EXPORT_REPORT -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) exportDiagnostics() else chooseReportDestination()
             SettingsCommand.DIPLAY -> openSystem(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/shihabal3amri/DiPlay")))
-            SettingsCommand.SOURCE -> openSystem(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/fython/wheelplay")))
+            SettingsCommand.SOURCE -> openSystem(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/cany7/TeslaPlay")))
             SettingsCommand.DOWNLOAD -> openSystem(Intent(Intent.ACTION_VIEW, Uri.parse("https://shihabal3amri.github.io/DiPlay/")))
         }
     }
@@ -622,7 +576,6 @@ class TeslaPlayActivity : AppCompatActivity() {
         content.addView(label(getString(UiR.string.source_tab), 30, TEXT, true).apply { setPadding(0, 0, 0, dp(24)) })
         ui.sourceCard(content, getString(UiR.string.source_carplay), getString(UiR.string.source_carplay_summary), R.drawable.ic_server_phone) { navigate("source-carplay") }
         ui.sourceCard(content, "Android Auto", getString(UiR.string.source_aa_summary), R.drawable.ic_server_launch) { navigate("source-android-auto") }
-        ui.sourceCard(content, "ICCOA CarLink", getString(UiR.string.source_iccoa_summary), R.drawable.ic_server_wifi) { navigate("source-iccoa") }
         ui.sourceCard(content, "VNC", getString(UiR.string.vnc_summary), R.drawable.ic_server_server) { navigate("source-vnc") }
         ui.sourceCard(content, getString(UiR.string.source_diagnostics), getString(UiR.string.source_diagnostics_summary), R.drawable.ic_server_server) { navigate("source-diagnostics") }
     }
@@ -679,13 +632,6 @@ class TeslaPlayActivity : AppCompatActivity() {
         ui.card(content, getString(UiR.string.aa_remote_title), R.drawable.ic_server_wifi) { body ->
             body.addView(label(getString(UiR.string.aa_tcp_hint), 15, MUTED))
             body.addView(button(getString(UiR.string.aa_remote_connect), false) { configureAndroidAutoTcp() }, matchButton(12))
-        }
-    }
-
-    private fun iccoaSource(content: LinearLayout) {
-        sourceHeading(content, "ICCOA CarLink")
-        ui.card(content, getString(UiR.string.source_unavailable), R.drawable.ic_server_phone) { body ->
-            body.addView(label(getString(UiR.string.iccoa_sdk_unavailable), 16, MUTED))
         }
     }
 
@@ -848,33 +794,6 @@ class TeslaPlayActivity : AppCompatActivity() {
 
     private fun startWebServiceIfReady() {
         startForegroundService(Intent(this, TeslaPlaySessionService::class.java))
-    }
-
-    private fun canImportAuthentication(): Boolean {
-        if (TeslaPlayBootstrap.importing) { toast(getString(UiR.string.ui_importing_authentication_resources_please_wait)); return false }
-        if (CarPlayBackgroundSession.hasSession()) { toast(getString(UiR.string.ui_disconnect_the_iphone_before_importing_authentication_resources)); return false }
-        return true
-    }
-
-    private fun launchAuthenticationPicker(launch: () -> Unit) {
-        runCatching(launch).onFailure {
-            selectedPrivateKey = null
-            toast(getString(UiR.string.ui_could_not_open_the_file_picker_enable_the_system))
-        }
-    }
-
-    private fun handleAuthenticationIntent(incoming: Intent): Boolean {
-        if (incoming.action != Intent.ACTION_SEND && incoming.action != Intent.ACTION_VIEW) return false
-        settingsModel.open(SettingsCategory.AUTHENTICATION)
-        shell.select("settings")
-        page = "settings"
-        val uri = AuthenticationImportIntents.apk(incoming)
-        if (uri == null) { toast(getString(UiR.string.ui_could_not_read_apk_import_it_using_the_file)); return true }
-        if (!canImportAuthentication()) return true
-        settingsDialogs.confirm(getString(UiR.string.ui_import_authentication_resources_from_this_apk), getString(UiR.string.ui_wheelplay_reads_only_the_two_authentication_resources_from_the)) {
-            authenticationImport.import(apk = uri)
-        }
-        return true
     }
 
     private fun setTeslaHttpEnabled(enabled: Boolean) {

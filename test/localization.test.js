@@ -15,7 +15,7 @@ test('all browser messages exist in each Android resource catalog', () => {
       for (const key of Object.keys(base)) assert.deepEqual(argumentsIn(catalog[key]), argumentsIn(base[key]), key);
     }
   }
-  for (const [qualifier, title] of [['values', 'Connect your CarPlay display'], ['values-zh-rCN', '连接 CarPlay 车机屏幕'], ['values-zh-rTW', '連線 CarPlay 車機螢幕']]) {
+  for (const [qualifier, title] of [['values', 'Show CarPlay on your Tesla'], ['values-zh-rCN', '在 Tesla 上显示 CarPlay'], ['values-zh-rTW', '在 Tesla 上顯示 CarPlay']]) {
     const messages = resourceStrings(qualifier), html = renderBrowserTemplate(template, messages);
     assert.ok(html.includes(title));
     assert.ok(!html.includes('{{'));
@@ -36,7 +36,7 @@ test('Android exports every browser template and literal message key, not just t
     assert.equal(match[1], match[2]); return match[1];
   }));
   const required = [...template.matchAll(/\{\{([a-z0-9_]+)\}\}/g)].map(match => match[1]);
-  for (const name of ['app.js', 'browser-audio.js', 'browser-location.js']) {
+  for (const name of ['app.js', 'browser-audio.js', 'browser-location.js', 'display-menu.js', 'diagnostics.js']) {
     const js = readFileSync(new URL(`../common/src/main/assets/web/${name}`, import.meta.url), 'utf8');
     required.push(...[...js.matchAll(/\bt\(['"]([a-z0-9_]+)['"]/g)].map(match => match[1]));
   }

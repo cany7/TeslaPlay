@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_car_bluetooth_audio_description">CarPlay only. The iPhone manages audio and microphone routing; select the Bluetooth audio device on the iPhone. Other audio settings are kept.</string>
     <string name="settings_audio_mode_pending">Saved for the next connection. The current audio route stays active until you apply and reconnect.</string>

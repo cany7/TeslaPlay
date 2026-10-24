@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="projection_sources">投影輸入源</string>
     <string name="projection_demo_hint">診斷源無需 CarPlay 認證。Surface 和 framebuffer 示範支援觸控回饋，H.264 測試串流為唯讀畫面。</string>
     <string name="projection_choose_demo">選擇投影輸入源</string>
     <string name="projection_stop">停止投影</string>
@@ -22,14 +21,12 @@
     <string name="aa_local_server_unavailable">無法連接本機 Android Auto。請開啟「首次設定與連線說明」，在 Android Auto 中啟動車機伺服器後重試。</string>
     <string name="aa_local_settings_unavailable">無法開啟 Android Auto 設定。請在系統設定中搜尋 Android Auto，並按照說明完成設定。</string>
     <string name="source_tab">輸入源</string>
-    <string name="source_carplay">CarPlay (iPhone)</string>
-    <string name="source_carplay_summary">連接 iPhone 使用 CarPlay</string>
+    <string name="source_carplay">CarPlay</string>
+    <string name="source_carplay_summary">連接 iPhone</string>
     <string name="source_aa_summary">使用本機或另一台 Android 手機投影</string>
-    <string name="source_iccoa_summary">CarLink 手機互聯 · 暫不可用</string>
     <string name="source_diagnostics">診斷輸入源</string>
     <string name="source_diagnostics_summary">檢查畫面輸出與觸控</string>
     <string name="source_back">返回輸入源</string>
-    <string name="source_unavailable">暫不可用</string>
     <string name="aa_usb_hint">使用傳輸線將另一台 Android 手機接到本裝置的 USB 介面，並依照提示允許 USB 存取。</string>
     <string name="aa_usb_connect">透過 USB 連接 Android Auto</string>
     <string name="aa_remote_title">另一台手機 · 車機伺服器</string>

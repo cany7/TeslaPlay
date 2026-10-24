@@ -201,5 +201,5 @@ test('disabled HTTPS removes the link and explains the app setting', async () =>
   f.element('secure-setup').open = true;
   await f.element('secure-setup').handlers.toggle();
   assert.equal(f.element('https-entry').href, undefined);
-  assert.match(f.element('tls-fingerprint').textContent, /HTTPS 已关闭.*Web 监听/);
+  assert.match(f.element('tls-fingerprint').textContent, /HTTPS 已关闭.*Tesla 网络与 HTTPS/);
 });

@@ -21,6 +21,12 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [29], qualifiers = "zh-rCN-w360dp-h800dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class SettingsCategoryNavigationTest : ComposeSettingsTest() {
+    @org.junit.Before
+    fun skipVpnConsentForNavigationTests() {
+        RuntimeEnvironment.getApplication().getSharedPreferences("tesla_http", 0)
+            .edit().putString("mode", "ROOT").commit()
+    }
+
     private fun tabs(activity: TeslaPlayActivity) =
         SettingsNavigation.views(activity.window.decorView)
             .filterIsInstance<BottomNavigationView>()
@@ -88,32 +94,28 @@ class SettingsCategoryNavigationTest : ComposeSettingsTest() {
     }
 
     @Test
-    fun categoriesKeepExistingSettingsAndUpstreamProjectLinkAccessible() {
+    fun categoriesExposeUnifiedNetworkAndLicenseWithoutImportOrUpstreamPromotion() {
         val controller = Robolectric.buildActivity(TeslaPlayActivity::class.java).setup()
         val activity = controller.get()
         try {
-            compose.onNodeWithText("从 DiPlay APK 导入").assertExists()
+            compose.onNodeWithText("从 DiPlay APK 导入").assertDoesNotExist()
             for ((category, tag) in
                 listOf(
                     "iPhone 连接" to "settings:phone",
                     "画面与串流" to "choice:FPS",
                     "音频与麦克风" to "choice:MICROPHONE",
-                    "车厂与定位" to "choice:LOCATION",
-                    "浏览器设备" to "settings:devices",
-                    "Web 服务" to "text:HTTP_PORT",
-                    "Tesla 兼容（实验）" to "choice:TESLA_MODE",
-                    "CarPlay 认证资源" to "settings:download",
-                    "帮助与关于" to "settings:source",
+                    "定位设置" to "choice:LOCATION",
+                    "浏览器设置" to "settings:devices",
+                    activity.getString(SettingsCategory.WEB.title) to "choice:TESLA_MODE",
+                    "帮助与关于" to "settings:licenses",
                 )) {
                 SettingsNavigation.open(activity, category, compose)
                 compose.onNodeWithTag(tag).assertExists()
             }
-            back()
-            compose.onNodeWithText("本项目基于 DiPlay 修改").performScrollTo().performClick()
-            assertEquals(
-                "https://github.com/shihabal3amri/DiPlay",
-                shadowOf(activity).nextStartedActivity.dataString,
-            )
+            clickTag("settings:licenses")
+            compose.onNodeWithText("TeslaPlay").assertExists()
+            compose.onNodeWithText("DashPlay").assertExists()
+            compose.onNodeWithText("GNU GPL 3.0").assertExists()
         } finally {
             controller.pause().stop().destroy()
         }
@@ -146,7 +148,8 @@ class SettingsCategoryNavigationTest : ComposeSettingsTest() {
             assertEquals(3, tabs(activity).selectedItemId)
             assertEquals(offset, scrollY())
             back()
-            compose.onNodeWithTag("category:AUTHENTICATION").assertExists()
+            compose.onNodeWithTag("category:AUTHENTICATION").assertDoesNotExist()
+            compose.onNodeWithTag("category:TESLA").assertDoesNotExist()
         } finally {
             controller.pause().stop().destroy()
         }

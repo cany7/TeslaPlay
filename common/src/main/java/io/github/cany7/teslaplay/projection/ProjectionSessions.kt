@@ -11,7 +11,6 @@ internal val projectionSessions = ProjectionRuntime()
             BrowserProjectionVideo(app, 1280, 720, VideoIngressKind.ENCODED)
         })
     }
-    projectionSessions.register(IccoaSource(app))
     projectionSessions.register(io.github.cany7.teslaplay.projection.vnc.VncSource(app) { width, height ->
         BrowserProjectionVideo(app, width, height, VideoIngressKind.FRAMEBUFFER)
     })

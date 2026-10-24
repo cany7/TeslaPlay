@@ -1037,7 +1037,7 @@ if (typeof document !== 'undefined') {
     if (!live && (pointers.size || desktop.active)) release();
     const rtcVisible = rtc && value.visible && value.frame?.transport === 'rtc';
     rendererStats.activeMode = rtcVisible ? launchMode : value.visible ? 'jpeg' : 'waiting';
-    const rendererLabel = launchMode === 'native' ? 'Video' : t(launchMode === 'video-canvas' ? 'web_video_renderer_compat' : 'web_video_renderer_direct');
+    const rendererLabel = launchMode === 'native' ? t('web_video_renderer_native') : t(launchMode === 'video-canvas' ? 'web_video_renderer_compat' : 'web_video_renderer_direct');
     const fallbackLabel = rendererStats.fallbackReason ? t(rendererStats.fallbackReason === 'processor-unsupported' ? 'web_video_renderer_unavailable' : 'web_video_renderer_failed') : '';
     const transport = rtcVisible ? `${rtc.codec === 'H265' ? 'HEVC' : 'H.264'} / WebRTC / ${rendererLabel}${rtcFps === null ? '' : ` · ${rtcFps} fps`}` : `${value.frame?.mime === 'image/webp' ? 'WebP' : 'JPEG'}${fallbackLabel}`;
     $('status').textContent = Date.now() < codecRetryNoticeUntil ? t('web_h264_fallback') : value.state === 'recovering' ? t('web_video_recovering', transport) :

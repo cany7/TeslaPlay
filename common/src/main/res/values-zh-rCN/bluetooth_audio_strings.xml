@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_car_bluetooth_audio_description">仅用于 CarPlay。由 iPhone 管理声音和麦克风，请在 iPhone 上选择蓝牙音频设备。其他音频设置会保留。</string>
     <string name="settings_audio_mode_pending">已保存，下次连接生效。当前音频路径保持不变，点击下方按钮应用并重新连接。</string>

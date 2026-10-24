@@ -45,8 +45,8 @@ const server = http.createServer(async (req,res) => {
     res.setHeader('Content-Type', 'application/json'); res.setHeader('Cache-Control', 'no-store');
     res.end(JSON.stringify(data)); return;
   }
-  if (req.url === '/i18n.js') { res.setHeader('Content-Type', 'text/javascript; charset=utf-8'); res.setHeader('Cache-Control', 'no-store'); res.end('globalThis.wheelplayMessages = ' + JSON.stringify(messages) + ';'); return; }
-  const file = { '/':'index.html','/app.js':'app.js','/text.js':'text.js','/browser-audio.js':'browser-audio.js','/browser-location.js':'browser-location.js',
+  if (req.url === '/i18n.js') { res.setHeader('Content-Type', 'text/javascript; charset=utf-8'); res.setHeader('Cache-Control', 'no-store'); res.end('globalThis.teslaplayMessages = ' + JSON.stringify(messages) + ';'); return; }
+  const file = { '/brand-storage.js': 'brand-storage.js', '/diagnostics.js': 'diagnostics.js', '/display-menu.js': 'display-menu.js', '/':'index.html','/app.js':'app.js','/text.js':'text.js','/browser-audio.js':'browser-audio.js','/browser-location.js':'browser-location.js',
     '/audio-worklet.js':'audio-worklet.js','/browser-media-session.js':'browser-media-session.js','/desktop-input.js':'desktop-input.js','/style.css':'style.css' }[req.url];
   if (!file) { res.writeHead(404);res.end();return; }
   try {

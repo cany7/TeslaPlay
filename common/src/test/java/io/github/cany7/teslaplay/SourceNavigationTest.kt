@@ -30,6 +30,7 @@ import java.io.File
 class SourceNavigationTest {
     @Before fun provision() {
         val context = RuntimeEnvironment.getApplication()
+        context.getSharedPreferences("tesla_http", 0).edit().putString("mode", "ROOT").commit()
         val identity = SyntheticMfiIdentity.create()
         MfiAssetStore(context.noBackupFilesDir).installFiles({ identity.key.inputStream() }, { identity.certificate.inputStream() })
         TeslaPlayPreferences.saveAutoConnect(context, false)
@@ -62,7 +63,7 @@ class SourceNavigationTest {
             assertEquals("输入源", nav.menu.findItem(2).title)
             nav.selectedItemId = 2
             val titles = cards(activity).map { views(it).filterIsInstance<TextView>().first().text.toString() }
-            assertEquals(listOf("CarPlay (iPhone)", "Android Auto", "ICCOA CarLink", "VNC", "诊断输入源"), titles)
+            assertEquals(listOf("CarPlay", "Android Auto", "VNC", "诊断输入源"), titles)
             assertTrue(buttons(activity).isEmpty())
             val initialSession = projectionSessions.snapshot()
             capture(activity, "index")
@@ -72,7 +73,7 @@ class SourceNavigationTest {
             assertFalse(buttons(activity).any { it.text == "连接本机 Android Auto" })
             capture(activity, "carplay")
             activity.onBackPressedDispatcher.onBackPressed()
-            assertEquals(5, cards(activity).size)
+            assertEquals(4, cards(activity).size)
             cards(activity)[1].performClick()
             assertTrue(buttons(activity).any { it.text == "连接本机 Android Auto" })
             assertTrue(buttons(activity).any { it.text == "通过 USB 连接 Android Auto" })
@@ -80,10 +81,6 @@ class SourceNavigationTest {
             capture(activity, "android-auto")
             buttons(activity).single { it.text == "返回输入源" }.performClick()
             cards(activity)[2].performClick()
-            assertTrue(views(page(activity)).filterIsInstance<TextView>().any { it.text == "暂不可用" })
-            assertFalse(buttons(activity).any { it.text == "停止投影" })
-            buttons(activity).single { it.text == "返回输入源" }.performClick()
-            cards(activity)[3].performClick()
             assertTrue(buttons(activity).any { it.text == "连接 VNC" })
             capture(activity, "vnc")
             buttons(activity).single { it.text == "连接 VNC" }.performClick()

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="tesla_backup_title">Back up &amp; restore settings</string>
     <string name="tesla_backup_help">Exports display, audio and connection settings, without credentials or certificates. Imports apply next connection.</string>

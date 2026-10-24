@@ -87,6 +87,7 @@ class CrashRecordInstaller : ContentProvider() {
     override fun onCreate(): Boolean {
         context?.let {
             CrashRecord.install(it)
+            TeslaDefaults.migrate(it)
         }
         return true
     }

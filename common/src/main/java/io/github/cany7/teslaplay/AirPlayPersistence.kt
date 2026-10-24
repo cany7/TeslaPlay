@@ -81,8 +81,8 @@ object AirPlayPersistence {
     private const val SAFE_AREA_KEY_PREFIX = "safe_area_"
     private const val CUSTOM_ICON_FILE = "airplay-icon.png"
 
-    const val DEFAULT_MODEL = "WheelPlay"
-    const val DEFAULT_SIMULATED_MANUFACTURER_NAME = "NIO"
+    const val DEFAULT_MODEL = "TeslaPlay"
+    const val DEFAULT_SIMULATED_MANUFACTURER_NAME = "Tesla"
     const val DEFAULT_MFI_I2C_PATH = "/dev/i2c-1"
 
     // Independent of the Android/browser route so turning it off restores those preferences.
@@ -155,7 +155,7 @@ object AirPlayPersistence {
 
     fun loadHevcEnabled(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_HEVC_ENABLED, false)
+            .getBoolean(KEY_HEVC_ENABLED, true)
 
     fun loadUiScalePercent(context: Context): Int = CarPlayUiScale.sanitize(
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -253,7 +253,7 @@ object AirPlayPersistence {
         val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_WIRELESS_HOTSPOT_MODE, null)
         val mode = WirelessHotspotMode.entries.firstOrNull { it.name == stored }
-            ?: WirelessHotspotMode.WIFI_P2P
+            ?: WirelessHotspotMode.MANUAL
         return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
             mode == WirelessHotspotMode.WIFI_P2P
         ) {
@@ -375,7 +375,7 @@ object AirPlayPersistence {
     fun loadModel(context: Context): String =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_MODEL, null)
-            ?.takeUnless { it == "DiPlay" || it == "DiPlay Web" }
+            ?.takeUnless { it == "WheelPlay" || it == "DiPlay" || it == "DiPlay Web" }
             ?.takeIf { it.isNotBlank() }
             ?: DEFAULT_MODEL
 
@@ -385,21 +385,7 @@ object AirPlayPersistence {
             .apply()
     }
 
-    fun loadSimulatedManufacturerName(context: Context): String {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val stored = prefs.getString(KEY_OEM_LABEL, null)
-        // Upgrade the previous default once, while allowing users to choose BYD again later.
-        val legacyDefault = stored == "BYD" && !prefs.getBoolean(KEY_OEM_LABEL_MIGRATED, false)
-        // iOS hides the car icon without a label.
-        val name = (if (legacyDefault) DEFAULT_SIMULATED_MANUFACTURER_NAME else stored)?.trim()?.takeIf { it.isNotBlank() }
-            ?: prefs.getString(KEY_MANUFACTURER, null)
-                ?.takeIf { it.isNotBlank() && it != "WheelPlay" && it != "DiPlay" && it != "DiPlay Web" }
-            ?: DEFAULT_SIMULATED_MANUFACTURER_NAME
-        if (stored != name || !prefs.getBoolean(KEY_OEM_LABEL_MIGRATED, false)) {
-            prefs.edit().putString(KEY_OEM_LABEL, name).putBoolean(KEY_OEM_LABEL_MIGRATED, true).apply()
-        }
-        return name
-    }
+    fun loadSimulatedManufacturerName(context: Context): String = DEFAULT_SIMULATED_MANUFACTURER_NAME
 
     fun saveSimulatedManufacturerName(context: Context, name: String) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
@@ -410,7 +396,7 @@ object AirPlayPersistence {
 
     fun loadFps(context: Context): Int = AirPlayDisplaySettings.sanitizeFps(
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getInt(KEY_FPS, 30),
+            .getInt(KEY_FPS, 60),
     )
 
     fun loadStreamTechnology(context: Context): io.github.cany7.teslaplay.web.StreamTechnology {
@@ -606,13 +592,8 @@ object AirPlayPersistence {
         if (commit) editor.commit() else editor.apply()
     }
 
-    @Synchronized
-    fun loadCustomAirPlayIconFile(context: Context): File? {
-        val file = AtomicFile(File(context.filesDir, CUSTOM_ICON_FILE))
-        // Recover the last complete icon if a previous write was interrupted.
-        try { file.openRead().close() } catch (_: java.io.FileNotFoundException) { return null }
-        return file.baseFile
-    }
+    // TeslaPlay uses its bundled Tesla vehicle icon; keep old custom files for upgrade compatibility.
+    fun loadCustomAirPlayIconFile(context: Context): File? = null
 
     @Synchronized
     fun saveCustomAirPlayIcon(context: Context, encodedImage: ByteArray) {

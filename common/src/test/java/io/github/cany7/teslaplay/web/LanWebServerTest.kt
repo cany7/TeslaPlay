@@ -128,7 +128,7 @@ class LanWebServerTest {
             assertNull(WebSession.setHttpPort(context, port))
             assertEquals(port, WebSession.httpPort)
             assertEquals(port, WebListenSettings.httpPort(context))
-            assertFalse(TeslaHttpCompatibility.config(context).enabled)
+            assertTrue(TeslaHttpCompatibility.config(context).enabled)
             assertEquals(oldCode, WebSession.code)
             assertSame(oldFrame, WebSession.frame)
             assertTrue(URL("http://127.0.0.1:$port/").readText().contains("设备上的六位配对码"))

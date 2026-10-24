@@ -23,7 +23,7 @@ class BrowserDeviceManagementTest : ComposeSettingsTest() {
             val original = devices.remember("Chrome · Android", "192.168.1.2")!!
             // Refresh after an external service update, as returning to the Activity would.
             controller.pause().resume()
-            SettingsNavigation.open(activity, "浏览器设备", compose)
+            SettingsNavigation.open(activity, "浏览器设置", compose)
             clickTag("settings:devices")
             clickTag("browser:${original.device.id}")
             clickText("重命名")

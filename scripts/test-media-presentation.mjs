@@ -145,6 +145,19 @@ try {
   await wait(`!!window.teslaplayStats && !!document.getElementById('connect') && !document.getElementById('connect').disabled`);
   await evaluate(`document.getElementById('code').value='123456';document.getElementById('connect-form').requestSubmit()`);
   await wait(showing);
+  status({ deviceDiagnostics: { sampledAt: Date.now(), serviceStarted: true, clientRequestedAt: Date.now(), clientConnected: true,
+    sourceState: 'ready', thermalStatus: null, socTemperatureC: null, tlsState: 'disabled' } });
+  const displayBounds = () => evaluate(`JSON.stringify(document.getElementById('display').getBoundingClientRect().toJSON())`);
+  const boundsBeforeDiagnostics = await displayBounds();
+  assert.equal(await evaluate(`document.getElementById('display-menu').contains(document.getElementById('projection-diagnostics'))`), true);
+  await evaluate(`document.getElementById('menu-handle').click(); document.getElementById('projection-diagnostics').open = true`);
+  await wait(`document.querySelector('#projection-diagnostics dl').textContent.includes('320 × 180')`);
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('#projection-diagnostics dt')).find(e=>e.textContent.startsWith('SoC')).nextElementSibling.textContent`), '未知');
+  assert.equal(await evaluate(`document.getElementById('display-menu').hidden`), false);
+  assert.equal(await displayBounds(), boundsBeforeDiagnostics, 'Expanded diagnostics must overlay rather than resize projection');
+  await evaluate(`document.getElementById('menu-close').click()`);
+  assert.equal(await evaluate(`document.getElementById('display-menu').hidden`), true);
+  assert.equal(await displayBounds(), boundsBeforeDiagnostics, 'Closing diagnostics must preserve projection bounds');
   await evaluate(`
     window.mediaHandlers = {};
     const originalActionHandler = MediaSession.prototype.setActionHandler;
@@ -293,7 +306,7 @@ try {
   frame(); await wait(showing);
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true, connections, imageAcks: acks, webpProbes, jpegFallbacks,
-    checks: ['five-touch source', 'read-only source', 'WebP capability probe', 'WebP touch with zoom compensation', 'JPEG fallback after corrupt WebP', 'two-image pipeline with exact ACKs',
+    checks: ['menu opens/closes over live projection', 'diagnostics show received size and unknown SoC', 'diagnostics overlay preserves projection bounds', 'five-touch source', 'read-only source', 'WebP capability probe', 'WebP touch with zoom compensation', 'JPEG fallback after corrupt WebP', 'two-image pipeline with exact ACKs',
       'decode without overlay flashes', 'gap releases touch', 'deadline without status', 'cancelled deadline',
       'same-size rebuild', 'cancelled mouse drag cannot cross video epochs', 'old frame rejection', 'rotation', 'real socket reconnect', 'native browser Media Session metadata and cover',
       'media action roundtrip', 'desktop right drag, scroll and versioned keyboard', 'desktop blur releases modifiers', 'phone-authoritative pause', 'capability-gated seek and final drag position', 'media cleanup and retired callback isolation'] }, null, 2));

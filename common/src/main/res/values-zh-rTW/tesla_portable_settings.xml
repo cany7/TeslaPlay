@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="tesla_backup_title">備份與恢復設置</string>
     <string name="tesla_backup_help">導出顯示、音頻和連接設置，不含認證、密碼和證書。導入後下次連接生效。</string>

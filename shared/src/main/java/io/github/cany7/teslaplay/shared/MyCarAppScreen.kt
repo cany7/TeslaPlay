@@ -15,7 +15,7 @@ class MyCarAppScreen(carContext: CarContext) : Screen(carContext) {
                 )
             )
             .setHeaderAction(Action.APP_ICON)
-            .setTitle(carContext.getString(UiR.string.ui_xcertplay_hardware_status))
+            .setTitle(carContext.getString(UiR.string.ui_teslaplay_hardware_status))
             .build()
     }
 }
