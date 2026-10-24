@@ -8,13 +8,13 @@ import java.util.UUID
 
 /** Small, redacted snapshot retained separately from the rotating session logs. */
 internal object DisplayDiagnosticSnapshot {
-    private const val PREFS = "diplay_display_diagnostics"
+    private const val PREFS = "teslaplay_display_diagnostics"
     private val fields = listOf("selection", "request", "capability", "effective", "phone", "decoder", "output")
     private fun stamp() = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
 
     @Synchronized
     fun selection(context: Context, previous: Int, selected: Int, reconnect: Boolean) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("selection",
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putLong("updatedAt", System.currentTimeMillis()).putString("selection",
             "${stamp()} Size setting previous=$previous% selected=$selected% reconnect=$reconnect").apply()
     }
 
@@ -23,6 +23,7 @@ internal object DisplayDiagnosticSnapshot {
         val attempt = UUID.randomUUID().toString()
         val editor = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
         fields.filter { it != "selection" }.forEach(editor::remove)
+        editor.putLong("updatedAt", System.currentTimeMillis())
         editor.putString("attempt", attempt)
         for ((key, line) in listOf("request" to request, "capability" to capability, "effective" to effective)) {
             DiagnosticRedactor.redact(line)?.let { editor.putString(key, "${stamp()} $it") }
@@ -46,12 +47,20 @@ internal object DisplayDiagnosticSnapshot {
             else -> return
         }
         val safe = DiagnosticRedactor.redact(message) ?: return
-        prefs.edit().putString(field, "${stamp()} $safe").apply()
+        prefs.edit().putLong("updatedAt", System.currentTimeMillis()).putString(field, "${stamp()} $safe").apply()
+    }
+
+    fun clear(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply()
     }
 
     @Synchronized
     fun report(context: Context): String {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (System.currentTimeMillis() - prefs.getLong("updatedAt", 0) > DiagnosticsRetention.MAX_AGE_MS) {
+            clear(context)
+            return "No recent display negotiation recorded."
+        }
         return fields.mapNotNull { prefs.getString(it, null)?.let(DiagnosticRedactor::redact) }
             .joinToString("\n").ifEmpty { "No display negotiation recorded yet." }
     }

@@ -663,7 +663,7 @@ export function createRtcReceiver(createRenderer, {
         error.message !== 'processor-unsupported' && isRtcErrorRetryable(error));
     }
   }
-  return { receive, close, fallback, get active() { return ready; }, get codec() { return codec; },
+  return { receive, close, fallback, get active() { return ready; }, get connectionState() { return peer?.connectionState || 'closed'; }, get codec() { return codec; },
     get recovering() { return ready && (disconnectTimer !== null || stalledSince !== null || renderStalledSince !== null || statsFailedSince !== null); },
     progress(count) {
       if (count > sent) {
@@ -675,6 +675,7 @@ export function createRtcReceiver(createRenderer, {
   };
 }
 
+import { createDiagnostics } from './diagnostics.js';
 import { createBrowserAudio } from './browser-audio.js';
 import { createBrowserLocation } from './browser-location.js';
 import { createBrowserMediaSession } from './browser-media-session.js';
@@ -682,6 +683,7 @@ import { createBrowserMediaSession } from './browser-media-session.js';
 if (typeof document !== 'undefined') {
   try { migrateBrowserStorage(window.localStorage); } catch (_) {}
   const $ = id => document.getElementById(id);
+  const diagnostics = createDiagnostics($('projection-diagnostics'));
   const screen = $('screen');
   const screens = [screen, $('screen-next'), $('screen-third')];
   const heldFrame = $('held-frame');
@@ -1017,6 +1019,7 @@ if (typeof document !== 'undefined') {
     if (value.revision !== desktopRevision) {
       desktop.release(false); desktopRevision = value.revision;
     }
+    diagnostics.update({ frame: value.frame, visible: value.visible, receiver: performanceStats.receiver, rtcState: rtc?.connectionState });
     live = value.interactive;
     for (const surface of [...screens, video, canvas, heldFrame].filter(Boolean)) surface.classList.toggle('stale', !value.visible);
     touchSurface.classList.toggle('stale', !live);
@@ -1192,6 +1195,7 @@ if (typeof document !== 'undefined') {
           const message = data.message; disconnect(); $('message').textContent = message; return;
         }
         if (data.type === 'status') {
+          diagnostics.receive(data.deviceDiagnostics);
           performanceStats.source = data.performance?.source ?? null;
           performanceStats.transport = data.performance?.transport ?? null;
           performanceStats.image = data.performance?.image ?? null;

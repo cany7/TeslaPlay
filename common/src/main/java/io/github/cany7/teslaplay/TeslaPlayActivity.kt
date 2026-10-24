@@ -444,6 +444,10 @@ class TeslaPlayActivity : AppCompatActivity() {
             SettingsCommand.APP_PERMISSIONS -> openSystem(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
             SettingsCommand.BLUETOOTH_SETTINGS -> openSystem(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
             SettingsCommand.WIRELESS_HELP -> wirelessHelp()
+            SettingsCommand.CLEAR_DIAGNOSTICS -> {
+                DiagnosticsRetention.clear(applicationContext)
+                toast(getString(io.github.cany7.teslaplay.host.R.string.settings_diagnostics_cleared))
+            }
             SettingsCommand.EXPORT_REPORT -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) exportDiagnostics() else chooseReportDestination()
             SettingsCommand.DIPLAY -> openSystem(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/shihabal3amri/DiPlay")))
             SettingsCommand.SOURCE -> openSystem(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/fython/wheelplay")))
@@ -1084,10 +1088,11 @@ class TeslaPlayActivity : AppCompatActivity() {
         val fileName = reportFileName()
         Thread({
             val result = runCatching {
+                DiagnosticsRetention.prune(File(appContext.filesDir, "logs"))
                 val report = buildString {
                     appendLine("TeslaPlay ${version()} · private beta diagnostic report")
                     appendLine("Android ${Build.VERSION.RELEASE} / API ${Build.VERSION.SDK_INT}")
-                    appendLine("Head unit: ${Build.MANUFACTURER} ${Build.MODEL}")
+                    appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL}")
                     appendLine("Connection: ${if (AirPlayPersistence.loadWirelessEnabled(appContext)) "wireless" else "USB"}")
                     appendLine("Authentication: local experimental beta identity; no remote fallback")
                     appendLine("Saved video preference (may differ from active session): ${if (AirPlayPersistence.loadHevcEnabled(appContext)) "HEVC" else "H.264"}; ${AirPlayPersistence.loadFps(appContext)} fps")
@@ -1097,6 +1102,11 @@ class TeslaPlayActivity : AppCompatActivity() {
                     TeslaHttpCompatibility.status.error?.let { appendLine("Tesla compatibility status: $it") }
                     appendLine("Session: ${if (CarPlayBackgroundSession.active) "active" else if (CarPlayBackgroundSession.hasSession()) "connecting" else "stopped"}")
                     appendLine("Head-unit board: ${Build.BOARD}; hardware: ${Build.HARDWARE}; build: ${Build.DISPLAY}")
+                    appendLine()
+                    appendLine("--- Runtime state (browser received dimensions/FPS are shown in the browser diagnostics) ---")
+                    appendLine(RuntimeDiagnostics.sample(appContext).toString())
+                    appendLine("--- Last uncaught exception ---")
+                    appendLine(CrashRecord.report(appContext))
                     appendLine()
                     appendLine("--- Last display negotiation (timestamps distinguish it from current settings) ---")
                     appendLine(DisplayDiagnosticSnapshot.report(appContext))

@@ -17,6 +17,9 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     <application>
+        <provider android:name="io.github.cany7.teslaplay.CrashRecordInstaller"
+            android:authorities="${applicationId}.crash-record" android:exported="false"
+            android:initOrder="100" />
         <activity android:name="io.github.cany7.teslaplay.TeslaPlayActivity"
             android:exported="true" android:launchMode="singleTop"
             android:configChanges="density|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"

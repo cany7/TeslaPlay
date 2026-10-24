@@ -83,6 +83,7 @@ internal enum class SettingsCommand {
     BLUETOOTH_SETTINGS,
     WIRELESS_HELP,
     EXPORT_REPORT,
+    CLEAR_DIAGNOSTICS,
     DIPLAY,
     SOURCE,
     DOWNLOAD,

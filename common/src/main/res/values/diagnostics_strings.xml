@@ -1,0 +1,5 @@
+<resources>
+    <string name="settings_clear_diagnostics">Clear saved diagnostics</string>
+    <string name="settings_diagnostics_cleared">Saved diagnostics cleared</string>
+    <string name="settings_diagnostics_retention">Private logs: at most 7 days and 4 MiB; last crash: 64 KiB. Exported reports in Downloads remain until you delete them.</string>
+</resources>

@@ -1,0 +1,5 @@
+<resources>
+    <string name="settings_clear_diagnostics">清除已保存的诊断</string>
+    <string name="settings_diagnostics_cleared">已清除保存的诊断</string>
+    <string name="settings_diagnostics_retention">私有日志最多保留 7 天、4 MiB；上次崩溃记录最多 64 KiB。已导出至下载目录的报告需自行删除。</string>
+</resources>

@@ -114,6 +114,7 @@ internal class LanWebServer(
     }
 
     override fun serveHttp(session: IHTTPSession): Response {
+        io.github.cany7.teslaplay.RuntimeDiagnostics.requestReceived()
         if (session.uri.startsWith("/pair/")) return servePairing(session)
         if (session.method != Method.GET)
             return response(Response.Status.METHOD_NOT_ALLOWED, "GET only")
@@ -174,6 +175,7 @@ internal class LanWebServer(
                 "/index.html" -> "index.html" to "text/html; charset=utf-8"
                 "/text.js" -> "text.js" to "text/javascript; charset=utf-8"
                 "/brand-storage.js" -> "brand-storage.js" to "text/javascript; charset=utf-8"
+                "/diagnostics.js" -> "diagnostics.js" to "text/javascript; charset=utf-8"
                 "/app.js" -> "app.js" to "text/javascript; charset=utf-8"
                 "/desktop-input.js" -> "desktop-input.js" to "text/javascript; charset=utf-8"
                 "/style.css" -> "style.css" to "text/css; charset=utf-8"
@@ -683,6 +685,7 @@ internal class LanWebServer(
                     "ping" -> {
                         // Match service-stop lock ordering: take the session snapshot first.
                         val media = WebSession.mediaSnapshot()
+                        val deviceDiagnostics = io.github.cany7.teslaplay.RuntimeDiagnostics.sample(context)
                         reconcileVideo()
                         synchronized(rtcLock) {
                             val frame = media.frame
@@ -691,6 +694,7 @@ internal class LanWebServer(
                                 WebStreamSender.Control.STATUS,
                                 JSONObject()
                                     .put("type", "status")
+                                    .put("deviceDiagnostics", deviceDiagnostics)
                                     .put("width", media.width)
                                     .put("height", media.height)
                                     .put("mediaProtocol", imageProtocol.coerceAtLeast(2))

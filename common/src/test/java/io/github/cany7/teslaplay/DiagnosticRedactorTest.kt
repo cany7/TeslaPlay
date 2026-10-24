@@ -21,7 +21,7 @@ class DiagnosticRedactorTest {
         } finally { folder.deleteRecursively() }
     }
     @Test fun payloadAndCredentialLinesNeverReachReports() {
-        for (line in listOf("TRACE IAP2 tx key", "hotspot passphrase=secret", "token=secret", "certificate bytes=607", "rx body={phone: 'Jane'}", "ok\nsecret", "wifi ssid=Home", "wireless name=Jane Smith’s iPhone")) {
+        for (line in listOf("TRACE IAP2 tx key", "hotspot passphrase=secret", "token=secret", "authorization: Bearer secret", "api_key=secret", "deviceId=personal-device", "udid=personal-device", "certificate bytes=607", "rx body={phone: 'Jane'}", "ok\nsecret", "wifi ssid=Home", "wireless name=Jane Smith’s iPhone")) {
             assertNull(line, DiagnosticRedactor.redact(line))
         }
     }

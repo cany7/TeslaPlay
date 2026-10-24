@@ -43,6 +43,10 @@ internal fun HelpSettingsScreen(state: SettingsState, actions: SettingsActions) 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) R.string.settings_export_downloads
             else R.string.settings_export_document
         )
+        SettingsButton(R.string.settings_clear_diagnostics, !state.runtime.exporting) {
+            actions.command(SettingsCommand.CLEAR_DIAGNOSTICS)
+        }
+        SettingsDescription(R.string.settings_diagnostics_retention)
         SettingsDescription(R.string.settings_licenses)
     }
     SettingsGroup(R.string.settings_open_source) {

@@ -10,6 +10,7 @@ internal class SessionLogFile(val file: File) : Closeable {
     fun reset(header: String) = synchronized(lock) {
         if (!closed) {
             file.parentFile?.mkdirs()
+            DiagnosticsRetention.prune(file.parentFile!!)
             rotate()
             file.writeText("")
             append(header)
@@ -19,7 +20,7 @@ internal class SessionLogFile(val file: File) : Closeable {
         if (closed) return@synchronized
         val safe = DiagnosticRedactor.redact(line) ?: return@synchronized
         runCatching {
-            if (file.length() > MAX_BYTES) {
+            if (file.length() + (safe + "\n").toByteArray(Charsets.UTF_8).size > MAX_BYTES) {
                 rotate()
                 file.writeText("")
             }
@@ -32,9 +33,12 @@ internal class SessionLogFile(val file: File) : Closeable {
         for (index in ARCHIVE_NAMES.lastIndex downTo 1) {
             val source = File(file.parentFile, ARCHIVE_NAMES[index - 1])
             val destination = File(file.parentFile, ARCHIVE_NAMES[index])
-            if (source.exists()) source.copyTo(destination, overwrite = true)
+            if (source.exists()) {
+                source.copyTo(destination, overwrite = true)
+                destination.setLastModified(source.lastModified())
+            }
         }
-        file.copyTo(File(file.parentFile, ARCHIVE_NAMES.first()), overwrite = true)
+        file.copyTo(File(file.parentFile, ARCHIVE_NAMES.first()), overwrite = true).setLastModified(file.lastModified())
     }
     override fun close() = synchronized(lock) { closed = true }
     companion object {
