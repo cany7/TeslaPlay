@@ -1,6 +1,6 @@
 import { createMicResampler } from './browser-audio.js';
 
-class WheelPlayMicrophone extends AudioWorkletProcessor {
+class TeslaPlayMicrophone extends AudioWorkletProcessor {
   constructor() {
     super(); this.capture = null;
     this.port.onmessage = ({ data }) => {
@@ -14,4 +14,4 @@ class WheelPlayMicrophone extends AudioWorkletProcessor {
     return true;
   }
 }
-registerProcessor('wheelplay-microphone', WheelPlayMicrophone);
+registerProcessor('teslaplay-microphone', TeslaPlayMicrophone);

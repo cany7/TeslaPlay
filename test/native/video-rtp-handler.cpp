@@ -18,11 +18,11 @@ int main() {
         auto track = pc.addTrack(video);
         auto config = std::make_shared<rtc::RtpPacketizationConfig>(42,"test",96,90000);
         config->timestamp = 0x12345678; config->sequenceNumber = 65535;
-        auto handler = std::make_shared<wheelplay::VideoRtpHandler>(config,hevc,1100);
+        auto handler = std::make_shared<teslaplay::VideoRtpHandler>(config,hevc,1100);
         auto capture = std::make_shared<Capture>();
         handler->addToChain(std::make_shared<rtc::RtcpNackResponder>(512));
         handler->addToChain(capture); track->setMediaHandler(handler);
-        auto send = [&](wheelplay::VideoView frame, wheelplay::VideoView parameters) {
+        auto send = [&](teslaplay::VideoView frame, teslaplay::VideoView parameters) {
             try { handler->send(*track,frame,parameters); }
             catch (const std::runtime_error& e) {
                 // Exercise the real media chain without starting ICE or a network connection.

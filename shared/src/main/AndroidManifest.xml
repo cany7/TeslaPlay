@@ -36,7 +36,7 @@
             android:value="1" />
 
         <service
-            android:name="com.shilapi.xcertplay.shared.MyCarAppService"
+            android:name="io.github.cany7.teslaplay.shared.MyCarAppService"
             android:exported="true">
             <intent-filter>
                 <action android:name="androidx.car.app.CarAppService" />
@@ -46,7 +46,7 @@
         </service>
 
         <service
-            android:name="com.shilapi.xcertplay.network.CarPlayVpnService"
+            android:name="io.github.cany7.teslaplay.network.CarPlayVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE"
             android:exported="false">
             <!-- Local Web/USB owners establish the tunnels; system-only startup cannot do so. -->

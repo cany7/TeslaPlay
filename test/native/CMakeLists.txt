@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(wheelplay_media_tests LANGUAGES C CXX)
+project(teslaplay_media_tests LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 if(NOT LIBDATACHANNEL_SOURCE_DIR)
     message(FATAL_ERROR "Set LIBDATACHANNEL_SOURCE_DIR to the pinned libdatachannel checkout")

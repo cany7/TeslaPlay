@@ -15,8 +15,8 @@ static Bytes annex(const std::vector<Bytes>& nals) {
 }
 static std::vector<Packet> encode(const Bytes& frame, const Bytes& config, bool hevc, size_t limit) {
     std::vector<Packet> result;
-    wheelplay::packetizeVideo({frame.data(),frame.size()}, {config.data(),config.size()}, hevc, limit,
-        [&](wheelplay::VideoView header, wheelplay::VideoView payload, bool marker) {
+    teslaplay::packetizeVideo({frame.data(),frame.size()}, {config.data(),config.size()}, hevc, limit,
+        [&](teslaplay::VideoView header, teslaplay::VideoView payload, bool marker) {
             // Each payload references one of the original buffers, never an intermediate vector.
             auto in = [&](const Bytes& b) { auto p = uintptr_t(payload.data), start = uintptr_t(b.data());
                 return p >= start && p + payload.size <= start + b.size(); };
@@ -71,7 +71,7 @@ int main() {
             size_t emitted = 0;
             try {
                 auto config = annex(params);
-                wheelplay::packetizeVideo({bad.data(),bad.size()},{config.data(),config.size()},hevc,1100,
+                teslaplay::packetizeVideo({bad.data(),bad.size()},{config.data(),config.size()},hevc,1100,
                     [&](auto,auto,bool){++emitted;});
                 assert(false);
             } catch (const std::invalid_argument&) { assert(emitted == 0); }

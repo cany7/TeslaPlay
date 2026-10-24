@@ -117,7 +117,7 @@
     <string name="settings_hostname">Web hostname (optional)</string>
     <string name="settings_mdns_hostname">Local mDNS hostname</string>
     <string name="settings_mdns_description">Defaults to wheelplay.local. Use the HTTP listener port on the same local network. The head unit\'s network must allow multicast.</string>
-    <string name="settings_mdns_invalid">Enter a single-label .local hostname, such as wheelplay.local</string>
+    <string name="settings_mdns_invalid">Enter a single-label .local hostname, such as teslaplay.local</string>
     <string name="settings_mdns_saved">mDNS hostname saved</string>
     <string name="settings_mdns_save_failed">Could not save mDNS hostname</string>
     <string name="settings_use_ip">Use IP address</string>
@@ -167,7 +167,7 @@
     <string name="settings_about_diagnostics">About &amp; diagnostics</string>
     <string name="settings_exporting">Saving report…</string>
     <string name="settings_export">Save diagnostic report</string>
-    <string name="settings_export_downloads">Saved to Downloads/WheelPlay. Reports are not uploaded automatically and exclude protocol payloads and credentials.</string>
+    <string name="settings_export_downloads">Saved to Downloads/TeslaPlay. Reports are not uploaded automatically and exclude protocol payloads and credentials.</string>
     <string name="settings_export_document">Choose where to save the report. Reports are not uploaded automatically and exclude protocol payloads and credentials.</string>
     <string name="settings_licenses">Based on xcertplay / DiPlay, retaining GPL-3.0 and AGPL-3.0 license notices. CarPlay and NIO icons belong to their respective owners.</string>
     <string name="settings_open_source">Open source</string>

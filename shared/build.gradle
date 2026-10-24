@@ -3,7 +3,7 @@ plugins {
 }
 def nativeBridge = providers.gradleProperty('nativeBridge').orElse('false').get().toBoolean()
 android {
-    namespace = 'com.shilapi.xcertplay.shared'
+    namespace = 'io.github.cany7.teslaplay.shared'
     compileSdk = 36
 
     defaultConfig {

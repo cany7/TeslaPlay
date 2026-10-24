@@ -82,7 +82,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: wheelplay-unit-test-results
+          name: teslaplay-unit-test-results
           path: |
             shared/build/reports/tests/
             shared/build/test-results/
@@ -93,7 +93,7 @@ jobs:
       - name: Upload browser runtime test APK
         uses: actions/upload-artifact@v4
         with:
-          name: wheelplay-browser-runtime-tests
+          name: teslaplay-browser-runtime-tests
           path: common/build/outputs/apk/androidTest/debug/common-debug-androidTest.apk
           if-no-files-found: error
 
@@ -101,7 +101,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wheelplay-debug-apk
+          name: teslaplay-debug-apk
           path: mobile/build/outputs/apk/debug/mobile-debug.apk
           if-no-files-found: warn
 
@@ -109,7 +109,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wheelplay-lint-results
+          name: teslaplay-lint-results
           path: mobile/build/reports/lint-results-debug.*
           if-no-files-found: warn
 
@@ -146,7 +146,7 @@ jobs:
       - name: Download browser runtime test APK
         uses: actions/download-artifact@v4
         with:
-          name: wheelplay-browser-runtime-tests
+          name: teslaplay-browser-runtime-tests
           path: runtime-tests
 
       - name: Enable KVM
@@ -190,7 +190,7 @@ jobs:
           disable-animations: true
           script: |
             adb install -r runtime-tests/common-debug-androidTest.apk
-            adb shell am instrument -w -r -e class com.shilapi.xcertplay.web.BrowserPageRuntimeTest com.shilapi.xcertplay.host.test/androidx.test.runner.AndroidJUnitRunner > browser-runtime.log
+            adb shell am instrument -w -r -e class io.github.cany7.teslaplay.web.BrowserPageRuntimeTest io.github.cany7.teslaplay.host.test/androidx.test.runner.AndroidJUnitRunner > browser-runtime.log
             cat browser-runtime.log
             grep -Eq '^OK \([1-9][0-9]* tests?\)' browser-runtime.log
 

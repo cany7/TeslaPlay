@@ -1,0 +1,163 @@
+package io.github.cany7.teslaplay.web
+
+import io.github.cany7.teslaplay.airplay.AudioCodecKind
+import io.github.cany7.teslaplay.airplay.AudioFormat
+import io.github.cany7.teslaplay.airplay.MicrophoneConfig
+import org.junit.Assert.*
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import java.net.InetAddress
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [29])
+class BrowserAudioBridgeTest {
+    private val format = AudioFormat(AudioCodecKind.LPCM, 48_000, 2, 96, "media")
+    private val mic = MicrophoneConfig("telephony", 16_000, 1, 97, 20,
+        InetAddress.getLoopbackAddress(), 12345, ByteArray(32))
+
+    @Test fun disabledRouteNeverStartsRemoteOrLocalMicrophoneInMediaSink() {
+        var requested = false
+        val remote = object : io.github.cany7.teslaplay.media.RemoteAudioRoute {
+            override val microphoneEnabled = false
+            override fun output(type: Int, format: AudioFormat, pcm: ByteArray, offset: Int, length: Int) = false
+            override fun audioStopped(type: Int) {}
+            override fun microphone(type: Int, config: MicrophoneConfig): io.github.cany7.teslaplay.media.PcmInput? {
+                requested = true; return null
+            }
+            override fun microphoneStopped(type: Int) {}
+            override fun onMicrophoneRouteChanged(listener: () -> Unit) {}
+            override fun close() {}
+        }
+        val sink = io.github.cany7.teslaplay.media.AndroidMediaSink(remoteAudio = remote)
+        sink.onMicrophoneStarted(100, mic)
+        assertFalse("A disabled route must be rejected before requesting or opening an input", requested)
+        sink.close()
+    }
+
+    @Test fun disabledMicrophoneClosesRemoteInputAndBlocksLocalFallbackAcrossBufferChanges() {
+        val bridge = BrowserAudioBridge(); val owner = Any()
+        val route = bridge.createRoute()
+        bridge.configure(false, true)
+        bridge.attach(owner, true, { _, _ -> }, {})
+        bridge.ready(owner, false, true)
+        val input = route.microphone(2, mic)!!
+        var changes = 0
+        route.onMicrophoneRouteChanged { changes++ }
+        bridge.configure(false, false, 300, microphoneEnabled = false)
+        assertFalse(route.microphoneEnabled)
+        assertFalse(bridge.microphoneRequested)
+        assertFalse(bridge.microphoneReady)
+        assertEquals(-1, input.read(ByteArray(4)))
+        assertNull(route.microphone(2, mic))
+        assertEquals(1, changes)
+        bridge.ready(owner, true, true)
+        bridge.configure(true, false, 1000, microphoneEnabled = false)
+        assertFalse(route.microphoneEnabled)
+        assertNull(route.microphone(2, mic))
+        bridge.configure(true, false, 1000, microphoneEnabled = true)
+        assertTrue(route.microphoneEnabled)
+        assertNull(route.microphone(2, mic))
+        assertEquals(2, changes)
+        route.close(); bridge.detach(owner)
+    }
+
+    @Test fun onlyTheAuthenticatedOwnerCanRouteAudioOrFeedTheNegotiatedMicrophone() {
+        val bridge = BrowserAudioBridge()
+        val owner = Any(); val stranger = Any()
+        val packets = mutableListOf<ByteArray>(); val controls = mutableListOf<String>()
+        val route = bridge.createRoute()
+        assertFalse(route.output(1, format, byteArrayOf(1,2,3,4), 0, 4))
+        bridge.attach(owner, true, { packet, _ -> packets.add(packet) }, controls::add)
+        bridge.ready(stranger, true, true)
+        assertFalse(route.output(1, format, byteArrayOf(1,2,3,4), 0, 4))
+        bridge.ready(owner, true, true)
+        assertFalse("Browser readiness cannot enable App-disabled forwarding", route.output(1, format, byteArrayOf(1,2,3,4), 0, 4))
+        bridge.configure(true, true)
+        assertEquals("audio-route", org.json.JSONObject(controls.last()).getString("type"))
+        bridge.ready(owner, true, true)
+        assertTrue(route.output(1, format, byteArrayOf(1,2,3,4), 0, 4))
+        val header = ByteBuffer.wrap(packets.single()).order(ByteOrder.LITTLE_ENDIAN)
+        assertEquals(BrowserAudioBridge.AUDIO_MAGIC, header.int)
+        assertEquals(1, header.int); assertEquals(48_000, header.int); assertEquals(2, header.short.toInt())
+        assertEquals(BrowserAudioBridge.AUDIO_FLAG_MEDIA, header.short.toInt()); assertEquals(1, header.int)
+        assertArrayEquals(byteArrayOf(1,2,3,4), packets.single().copyOfRange(20, 24))
+        var routeChanges = 0
+        route.onMicrophoneRouteChanged { routeChanges++ }
+        val input = route.microphone(2, mic)!!
+        val id = org.json.JSONObject(controls.last()).getInt("id")
+        val body = byteArrayOf(9,8,7,6)
+        val wire = ByteBuffer.allocate(12 + body.size).order(ByteOrder.LITTLE_ENDIAN)
+            .putInt(BrowserAudioBridge.MIC_MAGIC).putInt(id).putInt(0).put(body).array()
+        assertFalse(bridge.input(stranger, wire))
+        assertTrue(bridge.input(owner, wire))
+        assertFalse("Replay must be ignored", bridge.input(owner, wire))
+        val captured = ByteArray(8)
+        assertEquals(4, input.read(captured))
+        assertArrayEquals(body, captured.copyOf(4))
+        bridge.configure(false, false)
+        assertFalse(route.output(1, format, body, 0, body.size))
+        assertEquals(-1, input.read(captured))
+        bridge.configure(true, true)
+        assertFalse("Re-enabling requires fresh browser readiness", route.output(1, format, body, 0, body.size))
+        bridge.ready(owner, true, false)
+        assertTrue("Audio can forward while microphone stays local", route.output(1, format, body, 0, body.size))
+        bridge.detach(owner)
+        assertFalse(route.output(1, format, body, 0, body.size))
+        assertEquals(1, routeChanges)
+        route.close()
+    }
+    @Test fun playbackOwnershipStartsAfterMediaOutputAndDropsOnDetachEvenWhenPaused() {
+        val bridge = BrowserAudioBridge(); val owner = Any()
+        val route = bridge.createRoute(); val changes = mutableListOf<Boolean>()
+        route.onPlaybackRouteChanged(changes::add)
+        bridge.attach(owner, true, { _, _ -> }, {})
+        bridge.configure(true, false); bridge.ready(owner, true, false)
+        assertFalse(changes.last())
+        assertTrue(route.output(1, format, byteArrayOf(1,2,3,4), 0, 4))
+        assertTrue(changes.last())
+        bridge.detach(owner)
+        assertFalse(changes.last())
+        assertFalse(route.output(1, format, byteArrayOf(1,2,3,4), 0, 4))
+        route.close()
+    }
+
+    @Test fun detachDuringSendCannotRestoreStaleRemoteOwnership() {
+        val bridge = BrowserAudioBridge(); val owner = Any()
+        val route = bridge.createRoute(); val changes = mutableListOf<Boolean>()
+        route.onPlaybackRouteChanged(changes::add)
+        bridge.attach(owner, true, { _, _ -> bridge.detach(owner) }, {})
+        bridge.configure(true, false); bridge.ready(owner, true, false)
+        assertFalse(route.output(1, format, byteArrayOf(1,2,3,4), 0, 4))
+        assertFalse(changes.last())
+        route.close()
+    }
+
+    @Test fun selectedBufferReachesNewAndExistingViewersAndOnlyMediaPcmIsFlagged() {
+        val bridge = BrowserAudioBridge(); val owner = Any()
+        val controls = mutableListOf<String>(); val packets = mutableListOf<ByteArray>()
+        bridge.configure(true, false, 1000)
+        bridge.attach(owner, false, { packet, _ -> packets.add(packet) }, controls::add)
+        assertEquals(1000, org.json.JSONObject(controls.last()).getInt("mediaBufferMillis"))
+        bridge.ready(owner, true, false)
+        val route = bridge.createRoute()
+        try {
+            assertTrue(route.output(1, format, byteArrayOf(1,2,3,4), 0, 4))
+            assertTrue(route.output(2, format.copy(audioType = "telephony"), byteArrayOf(1,2,3,4), 0, 4))
+            assertEquals(BrowserAudioBridge.AUDIO_FLAG_MEDIA,
+                ByteBuffer.wrap(packets[0]).order(ByteOrder.LITTLE_ENDIAN).getShort(14).toInt())
+            assertEquals(0, ByteBuffer.wrap(packets[1]).order(ByteOrder.LITTLE_ENDIAN).getShort(14).toInt())
+            bridge.configure(true, false, 500)
+            assertEquals(500, org.json.JSONObject(controls.last()).getInt("mediaBufferMillis"))
+            bridge.detach(owner)
+            bridge.attach(owner, false, { _, _ -> }, controls::add)
+            assertEquals(500, org.json.JSONObject(controls.last()).getInt("mediaBufferMillis"))
+            bridge.configure(true, false, 37)
+            assertEquals(300, org.json.JSONObject(controls.last()).getInt("mediaBufferMillis"))
+        } finally { route.close(); bridge.detach(owner) }
+    }
+
+}

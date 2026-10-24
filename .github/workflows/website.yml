@@ -38,6 +38,6 @@ jobs:
       - run: npm run test:worker
       - uses: actions/upload-artifact@v4
         with:
-          name: wheelplay-website
+          name: teslaplay-website
           path: website/dist/
           if-no-files-found: error

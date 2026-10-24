@@ -1,6 +1,6 @@
 include_guard(GLOBAL)
 # Narrow, idempotent patch against the pinned libdatachannel revision. Fail on upstream drift.
-function(wheelplay_replace path before after)
+function(teslaplay_replace path before after)
     file(READ "${path}" source)
     string(FIND "${source}" "${after}" applied)
     if(applied EQUAL -1)

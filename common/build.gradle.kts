@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.shilapi.xcertplay.host"
+    namespace = "io.github.cany7.teslaplay.host"
     compileSdk {
         version = release(36)
     }
@@ -13,7 +13,7 @@ android {
         minSdk = 28
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
-        externalNativeBuild { cmake { targets += "wheelplay-rtc" } }
+        externalNativeBuild { cmake { targets += "teslaplay-rtc" } }
     }
 
     ndkVersion = "28.2.13676358"

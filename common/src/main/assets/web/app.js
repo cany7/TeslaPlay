@@ -1,4 +1,5 @@
 import { t } from './text.js';
+import { migrateBrowserStorage } from './brand-storage.js';
 import { createDesktopInput } from './desktop-input.js';
 // A surface inversely scaled inside the visual viewport cancels browser zoom.
 // Its bounding rectangle remains in the same CSS coordinates as pointer events.
@@ -679,6 +680,7 @@ import { createBrowserLocation } from './browser-location.js';
 import { createBrowserMediaSession } from './browser-media-session.js';
 
 if (typeof document !== 'undefined') {
+  try { migrateBrowserStorage(window.localStorage); } catch (_) {}
   const $ = id => document.getElementById(id);
   const screen = $('screen');
   const screens = [screen, $('screen-next'), $('screen-third')];
@@ -691,7 +693,7 @@ if (typeof document !== 'undefined') {
   const rendererStats = { selectedMode: 'native', activeMode: 'waiting', renderedFps: null, renderedFrames: null, fallbackReason: null };
   const performanceStats = { source: null, transport: null, receiver: null, image: null, presentation: rendererStats };
   const webpSupport = probeWebp();
-  Object.defineProperty(window, 'wheelplayStats', { configurable: true, get: () => JSON.parse(JSON.stringify(performanceStats)) });
+  Object.defineProperty(window, 'teslaplayStats', { configurable: true, get: () => JSON.parse(JSON.stringify(performanceStats)) });
   let rtc = null, rtcRequested = false, rtcFps = null;
   let socket = null, stopped = true, paired = false, retry = null, attempts = 0;
   let width = 1280, height = 720, live = false, lastStatus = 0, rtcMedia = {};
@@ -707,11 +709,11 @@ if (typeof document !== 'undefined') {
     $('location-message').hidden = !message || ['web_location_ready', 'web_location_active'].includes(key);
   } });
   locationOption.addEventListener('change', () => { void browserLocation.setEnabled(locationOption.checked); });
-  const devicePreference = 'wheelplay.browserDevice';
+  const devicePreference = 'teslaplay.browserDevice';
   let pairingToken = null, qrGeneration = 0, qrTimer = null, qrRequest = null;
   let viewportReportTimer = null, lastViewportSignature = '';
   const ignoreZoomOption = $('ignore-browser-zoom');
-  const ignoreZoomPreference = 'wheelplay.ignoreBrowserZoom';
+  const ignoreZoomPreference = 'teslaplay.ignoreBrowserZoom';
   try { ignoreZoomOption.checked = window.localStorage.getItem(ignoreZoomPreference) === 'true'; } catch (_) {}
   function syncDisplayZoom() {
     if (!display.style) return;
@@ -745,10 +747,10 @@ if (typeof document !== 'undefined') {
       if (!jpeg.current) presentation.invalidate('jpeg');
     },
   });
-  const rendererPreference = 'wheelplay.videoRenderer';
+  const rendererPreference = 'teslaplay.videoRenderer';
   let selectedMode = 'native';
   try {
-    selectedMode = videoRendererPreference(window.localStorage.getItem(rendererPreference), window.localStorage.getItem('wheelplay.canvasVideo'));
+    selectedMode = videoRendererPreference(window.localStorage.getItem(rendererPreference), window.localStorage.getItem('teslaplay.canvasVideo'));
     window.localStorage.setItem(rendererPreference, selectedMode);
   } catch (_) {}
   let launchMode = selectedMode;
@@ -1138,7 +1140,7 @@ if (typeof document !== 'undefined') {
       });
       $('message').textContent = '';
       $('phone-connect').disabled = false;
-      $('phone-connect-message').textContent = t("web_keep_wheelplay_in_the_foreground_on_android_tap_connect");
+      $('phone-connect-message').textContent = t("web_keep_teslaplay_in_the_foreground_on_android_tap_connect");
       $('pairing').hidden = true; $('display').hidden = false; $('disconnect').hidden = false;
       $('topbar').hidden = $('hide-toolbar').checked || Boolean(launchPresentation?.immersive);
       lastViewportSignature = '';

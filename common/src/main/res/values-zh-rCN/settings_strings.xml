@@ -117,7 +117,7 @@
     <string name="settings_hostname">Web 域名（可选）</string>
     <string name="settings_mdns_hostname">局域网 mDNS 域名</string>
     <string name="settings_mdns_description">默认使用 wheelplay.local。在同一局域网内访问 HTTP 监听端口；车机网络需允许组播。</string>
-    <string name="settings_mdns_invalid">请输入单级 .local 域名，例如 wheelplay.local</string>
+    <string name="settings_mdns_invalid">请输入单级 .local 域名，例如 teslaplay.local</string>
     <string name="settings_mdns_saved">mDNS 域名已保存</string>
     <string name="settings_mdns_save_failed">mDNS 域名保存失败</string>
     <string name="settings_use_ip">使用 IP 地址</string>
@@ -167,7 +167,7 @@
     <string name="settings_about_diagnostics">关于与诊断</string>
     <string name="settings_exporting">正在保存报告…</string>
     <string name="settings_export">保存诊断报告</string>
-    <string name="settings_export_downloads">报告保存到 Downloads/WheelPlay。不会自动上传，报告排除协议载荷和凭据。</string>
+    <string name="settings_export_downloads">报告保存到 Downloads/TeslaPlay。不会自动上传，报告排除协议载荷和凭据。</string>
     <string name="settings_export_document">请选择报告保存位置。不会自动上传，报告排除协议载荷和凭据。</string>
     <string name="settings_licenses">基于 xcertplay / DiPlay，保留 GPL-3.0 与 AGPL-3.0 许可声明。CarPlay 与 NIO 图标属于各自权利人。</string>
     <string name="settings_open_source">开源</string>

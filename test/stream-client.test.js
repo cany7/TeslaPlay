@@ -12,10 +12,10 @@ function fixture({ storedCanvas = null, storedMode = null, processorAvailable = 
   geometry = null, visual = null, mediaSession = null, locationBrowser = null,
   fullscreen = 'supported', codeDenied = false, resume = () => ({ token: 'session-token', name: 'Chrome' }) } = {}) {
   const elements = new Map(), timers = new Map(), raf = new Map(), sockets = [], peers = [], draws = [];
-  const preferences = new Map(storedCanvas === null ? [] : [['wheelplay.canvasVideo', storedCanvas]]);
-  if (storedIgnoreZoom !== null) preferences.set('wheelplay.ignoreBrowserZoom', storedIgnoreZoom);
+  const preferences = new Map(storedCanvas === null ? [] : [['teslaplay.canvasVideo', storedCanvas]]);
+  if (storedIgnoreZoom !== null) preferences.set('teslaplay.ignoreBrowserZoom', storedIgnoreZoom);
   const videoCallbacks = new Map(), createdVideos = [], processors = [];
-  if (storedMode !== null) preferences.set('wheelplay.videoRenderer', storedMode);
+  if (storedMode !== null) preferences.set('teslaplay.videoRenderer', storedMode);
   const documentEvents = {}, fullscreenCalls = [];
   const visualEvents = {};
   const visualViewport = visual ? { ...visual, addEventListener(type, fn) { visualEvents[type] = fn; } } : undefined;
@@ -110,7 +110,7 @@ function fixture({ storedCanvas = null, storedMode = null, processorAvailable = 
     set src(value) { setImmediate(() => this.onload?.()); }
     removeAttribute() {}
   };
-  context.wheelplayMessages = messages;
+  context.teslaplayMessages = messages;
   vm.runInNewContext(source, context);
   return { element, sockets, timers, peers, draws, preferences, raf, videoCallbacks, document, fullscreenCalls, createdVideos, processors, visualViewport, visualEvents,
     reportViewport() {
@@ -125,7 +125,7 @@ function fixture({ storedCanvas = null, storedMode = null, processorAvailable = 
         timers.delete(entry[0]); entry[1].fn();
       }
     },
-    stats: () => context.window.wheelplayStats,
+    stats: () => context.window.teslaplayStats,
     select(mode) { element(`renderer-${mode}`).checked = true; element(`renderer-${mode}`).handlers.change(); },
     async decoded(width = 1280, height = 720) {
       const frame = { displayWidth: width, displayHeight: height, closes: 0, close() { this.closes++; } };
@@ -281,8 +281,8 @@ test('renderer defaults, legacy migration, new preference precedence and storage
   const defaults = fixture(); assert.equal(defaults.element('renderer-native').checked, true);
   const f = fixture({ storedCanvas: 'true' }); assert.equal(f.element('renderer-video-canvas').checked, true);
   f.select('track-canvas');
-  assert.equal(f.preferences.get('wheelplay.videoRenderer'), 'track-canvas');
-  assert.equal(f.preferences.get('wheelplay.canvasVideo'), 'true');
+  assert.equal(f.preferences.get('teslaplay.videoRenderer'), 'track-canvas');
+  assert.equal(f.preferences.get('teslaplay.canvasVideo'), 'true');
   assert.equal(f.element('renderer-video-canvas').checked, false);
   const preferred = fixture({ storedCanvas: 'true', storedMode: 'native' });
   assert.equal(preferred.element('renderer-native').checked, true);
@@ -395,7 +395,7 @@ test('revocation during an active display stops retries and requires fresh pairi
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(f.sockets.length, 1);
   assert.equal(f.element('code-entry').hidden, false);
-  assert.equal(f.preferences.has('wheelplay.browserDevice'), false);
+  assert.equal(f.preferences.has('teslaplay.browserDevice'), false);
 });
 
 test('ignore browser zoom defaults off and restores the saved choice', () => {
@@ -405,7 +405,7 @@ test('ignore browser zoom defaults off and restores the saved choice', () => {
   option.checked = true;
   option.handlers.change({ target: option });
   assert.equal(f.element('ignore-browser-zoom').checked, true);
-  assert.equal(f.preferences.get('wheelplay.ignoreBrowserZoom'), 'true');
+  assert.equal(f.preferences.get('teslaplay.ignoreBrowserZoom'), 'true');
   const restored = fixture({ storedIgnoreZoom: 'true' });
   assert.equal(restored.element('ignore-browser-zoom').checked, true);
   const denied = fixture({ storageDisabled: true });
@@ -728,7 +728,7 @@ test('unsupported Direct Canvas skips rtc-start and handles an unexpected offer 
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(ws.sent.filter(m => m.type === 'rtc-fallback').length, 1);
   assert.equal(f.createdVideos.length, 0);
-  assert.equal(f.preferences.get('wheelplay.videoRenderer'), 'track-canvas');
+  assert.equal(f.preferences.get('teslaplay.videoRenderer'), 'track-canvas');
 });
 
 test('Direct Canvas resize controls touch mapping even after server status reports landscape', async () => {

@@ -6,19 +6,20 @@ plugins {
 }
 
 // Local provisioning stays out of version control. An environment override takes precedence.
-val localAuthenticationAssets = providers.environmentVariable("WHEELPLAY_AUTH_ASSETS_DIR")
+val localAuthenticationAssets = providers.environmentVariable("TESLAPLAY_AUTH_ASSETS_DIR")
+    .orElse(providers.environmentVariable("WHEELPLAY_AUTH_ASSETS_DIR"))
     .orElse(providers.environmentVariable("DIPLAY_AUTH_ASSETS_DIR"))
     .orNull?.let { file(it).canonicalFile }
     ?: rootProject.file(".local/auth-assets").takeIf { it.exists() }?.canonicalFile
 
 android {
-    namespace = "com.shilapi.xcertplay"
+    namespace = "io.github.cany7.teslaplay"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "moe.feng.wheelplay"
+        applicationId = "io.github.cany7.teslaplay"
         minSdk = 28
         targetSdk = 36
         versionCode = 21
@@ -113,7 +114,7 @@ tasks.register("assembleProvisionedDebug") {
     inputs.file(apk)
     doLast {
         check(assetDirectory != null) {
-            "Set WHEELPLAY_AUTH_ASSETS_DIR or provide .local/auth-assets before delivering this APK"
+            "Set TESLAPLAY_AUTH_ASSETS_DIR or provide .local/auth-assets before delivering this APK"
         }
         ZipFile(apk.get().asFile).use { archive ->
             for (name in listOf("identity.pk8", "certificate.p7b")) {

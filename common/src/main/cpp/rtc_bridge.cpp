@@ -8,8 +8,8 @@
 #include <vector>
 #include "video_buffer.hpp"
 
-extern "C" int wheelplaySetVideoPacketizer(int, const rtcPacketizerInit*, bool);
-extern "C" int wheelplaySendVideoParts(int, const uint8_t*, size_t, const uint8_t*, size_t);
+extern "C" int teslaplaySetVideoPacketizer(int, const rtcPacketizerInit*, bool);
+extern "C" int teslaplaySendVideoParts(int, const uint8_t*, size_t, const uint8_t*, size_t);
 
 namespace {
 struct Peer {
@@ -44,12 +44,12 @@ Peer* peer(jlong handle) { return reinterpret_cast<Peer*>(handle); }
 }
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_shilapi_xcertplay_web_RtcNative_create(JNIEnv* env, jobject owner, jstring profile, jboolean hevc) {
+Java_io_github_cany7_teslaplay_web_RtcNative_create(JNIEnv* env, jobject owner, jstring profile, jboolean hevc) {
     auto p = std::make_unique<Peer>();
     try {
         static std::once_flag logging;
         std::call_once(logging, [] { rtcInitLogger(RTC_LOG_WARNING, [](rtcLogLevel, const char* message) {
-            __android_log_write(ANDROID_LOG_WARN, "WheelPlayRtc", message);
+            __android_log_write(ANDROID_LOG_WARN, "TeslaPlayRtc", message);
         }); });
         env->GetJavaVM(&p->vm);
         p->owner = env->NewGlobalRef(owner);
@@ -79,16 +79,16 @@ Java_com_shilapi_xcertplay_web_RtcNative_create(JNIEnv* env, jobject owner, jstr
         rtcTrackInit track{};
         track.direction = RTC_DIRECTION_SENDONLY; track.codec = hevc ? RTC_CODEC_H265 : RTC_CODEC_H264;
         track.payloadType = 96; track.ssrc = 42;
-        track.mid = "video"; track.name = "wheelplay"; track.msid = "wheelplay";
+        track.mid = "video"; track.name = "teslaplay"; track.msid = "teslaplay";
         track.trackId = "screen"; track.profile = format;
         p->track = rtcAddTrackEx(p->pc, &track);
         env->ReleaseStringUTFChars(profile, format); check(p->track);
         rtcSetUserPointer(p->track, p.get());
         rtcPacketizerInit packetizer{};
-        packetizer.ssrc = 42; packetizer.cname = "wheelplay"; packetizer.payloadType = 96;
+        packetizer.ssrc = 42; packetizer.cname = "teslaplay"; packetizer.payloadType = 96;
         packetizer.clockRate = 90000; packetizer.nalSeparator = RTC_NAL_SEPARATOR_START_SEQUENCE;
         packetizer.maxFragmentSize = 1100;
-        check(wheelplaySetVideoPacketizer(p->track, &packetizer, hevc));
+        check(teslaplaySetVideoPacketizer(p->track, &packetizer, hevc));
         check(rtcChainRtcpSrReporter(p->track));
         check(rtcChainRtcpNackResponder(p->track, 512));
         check(rtcChainPliHandler(p->track, [](int, void* ptr) { static_cast<Peer*>(ptr)->emit("keyframe"); }));
@@ -97,18 +97,18 @@ Java_com_shilapi_xcertplay_web_RtcNative_create(JNIEnv* env, jobject owner, jstr
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_shilapi_xcertplay_web_RtcNative_begin(JNIEnv* env, jobject, jlong handle) {
+Java_io_github_cany7_teslaplay_web_RtcNative_begin(JNIEnv* env, jobject, jlong handle) {
     try { check(rtcSetLocalDescription(peer(handle)->pc, "offer")); } catch (const std::exception& e) { fail(env, e); }
 }
 extern "C" JNIEXPORT void JNICALL
-Java_com_shilapi_xcertplay_web_RtcNative_answer(JNIEnv* env, jobject, jlong handle, jstring sdp) {
+Java_io_github_cany7_teslaplay_web_RtcNative_answer(JNIEnv* env, jobject, jlong handle, jstring sdp) {
     const char* text = env->GetStringUTFChars(sdp, nullptr);
     int result = rtcSetRemoteDescription(peer(handle)->pc, text, "answer");
     env->ReleaseStringUTFChars(sdp, text);
     try { check(result); } catch (const std::exception& e) { fail(env, e); }
 }
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_shilapi_xcertplay_web_RtcNative_send(JNIEnv* env, jobject, jlong handle, jbyteArray frame, jbyteArray parameters, jlong timestamp) {
+Java_io_github_cany7_teslaplay_web_RtcNative_send(JNIEnv* env, jobject, jlong handle, jbyteArray frame, jbyteArray parameters, jlong timestamp) {
     auto p = peer(handle);
     if (!rtcIsOpen(p->track)) return false;
     auto data = env->GetByteArrayElements(frame, nullptr);
@@ -116,23 +116,23 @@ Java_com_shilapi_xcertplay_web_RtcNative_send(JNIEnv* env, jobject, jlong handle
     jbyte* prefix = parameters ? env->GetByteArrayElements(parameters, nullptr) : nullptr;
     if (parameters && !prefix) { env->ReleaseByteArrayElements(frame, data, JNI_ABORT); return false; }
     int result = rtcSetTrackRtpTimestamp(p->track, static_cast<uint32_t>(timestamp));
-    if (result >= 0) result = wheelplaySendVideoParts(p->track, reinterpret_cast<uint8_t*>(data),
+    if (result >= 0) result = teslaplaySendVideoParts(p->track, reinterpret_cast<uint8_t*>(data),
         env->GetArrayLength(frame), reinterpret_cast<uint8_t*>(prefix), parameters ? env->GetArrayLength(parameters) : 0);
     if (prefix) env->ReleaseByteArrayElements(parameters, prefix, JNI_ABORT);
     env->ReleaseByteArrayElements(frame, data, JNI_ABORT);
     return result >= 0;
 }
 extern "C" JNIEXPORT void JNICALL
-Java_com_shilapi_xcertplay_web_RtcNative_destroy(JNIEnv* env, jobject, jlong handle) {
+Java_io_github_cany7_teslaplay_web_RtcNative_destroy(JNIEnv* env, jobject, jlong handle) {
     std::unique_ptr<Peer> p(peer(handle));
     if (p) p->dispose(env);
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_shilapi_xcertplay_web_RtcNative_sendNative(JNIEnv* env, jobject, jlong handle, jlong frameHandle, jbyteArray parameters, jlong timestamp) {
+Java_io_github_cany7_teslaplay_web_RtcNative_sendNative(JNIEnv* env, jobject, jlong handle, jlong frameHandle, jbyteArray parameters, jlong timestamp) {
     auto p = peer(handle);
     if (!rtcIsOpen(p->track)) return false;
-    auto frame = reinterpret_cast<wheelplay::VideoBuffer*>(frameHandle);
+    auto frame = reinterpret_cast<teslaplay::VideoBuffer*>(frameHandle);
     try {
         std::vector<uint8_t> parameterBytes;
         if (parameters && env->GetArrayLength(parameters) > 0) {
@@ -142,17 +142,17 @@ Java_com_shilapi_xcertplay_web_RtcNative_sendNative(JNIEnv* env, jobject, jlong 
             if (env->ExceptionCheck()) return false;
         }
         int result = rtcSetTrackRtpTimestamp(p->track, static_cast<uint32_t>(timestamp));
-        if (result >= 0) result = wheelplaySendVideoParts(p->track, frame->bytes.data(), frame->bytes.size(),
+        if (result >= 0) result = teslaplaySendVideoParts(p->track, frame->bytes.data(), frame->bytes.size(),
             parameterBytes.data(), parameterBytes.size());
         return result >= 0;
     } catch (const std::exception& e) { fail(env,e); return false; }
 }
 
-extern "C" int wheelplaySrtpStats(int, int64_t*);
+extern "C" int teslaplaySrtpStats(int, int64_t*);
 extern "C" JNIEXPORT jlongArray JNICALL
-Java_com_shilapi_xcertplay_web_RtcNative_srtpStats(JNIEnv* env, jobject, jlong handle) {
+Java_io_github_cany7_teslaplay_web_RtcNative_srtpStats(JNIEnv* env, jobject, jlong handle) {
     int64_t counters[6]{};
-    if (wheelplaySrtpStats(peer(handle)->track, counters) < 0) return nullptr;
+    if (teslaplaySrtpStats(peer(handle)->track, counters) < 0) return nullptr;
     auto result = env->NewLongArray(6);
     jlong values[6];
     for (int i=0;i<6;++i) values[i] = counters[i];

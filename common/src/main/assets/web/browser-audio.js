@@ -36,7 +36,7 @@ export function createBrowserAudio({
   send, sendBinary, onState = () => {},
   createContext = () => new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' }),
   getMicrophone = () => navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false }),
-  createWorklet = context => new AudioWorkletNode(context, 'wheelplay-microphone', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] }),
+  createWorklet = context => new AudioWorkletNode(context, 'teslaplay-microphone', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] }),
   secure = () => window.isSecureContext && location.protocol === 'https:' && !!navigator.mediaDevices?.getUserMedia,
 } = {}) {
   let context = null, playback = false, microphone = false, connected = false;

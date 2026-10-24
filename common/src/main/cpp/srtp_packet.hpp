@@ -6,7 +6,7 @@
 #include <mutex>
 #include <stdexcept>
 
-namespace wheelplay {
+namespace teslaplay {
 struct SrtpMetrics {
     std::atomic<int64_t> protectedPackets{0}, retransmissions{0}, protectNs{0}, sendNs{0}, bytes{0}, failures{0};
 };
@@ -27,7 +27,7 @@ inline int64_t elapsedNs(SrtpClock::time_point start) {
 template<class Message, class Protect, class Send>
 bool sendOwnedSrtp(const std::shared_ptr<Message>& packet, const std::shared_ptr<const int>& context,
                    size_t trailer, Protect protect, Send send) {
-    auto& state = *packet->wheelplaySrtp;
+    auto& state = *packet->teslaplaySrtp;
     std::lock_guard<std::mutex> lock(state.mutex);
     auto& stats = *state.metrics;
     if (state.owner != packet.get()) { ++stats.failures; return false; }

@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace wheelplay {
+namespace teslaplay {
 struct VideoView { const uint8_t* data; size_t size; };
 
 // Views borrow the access unit only until packetization returns. No payload arrays are built.

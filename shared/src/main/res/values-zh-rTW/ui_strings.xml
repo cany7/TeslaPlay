@@ -393,7 +393,7 @@
     <string name="host_carplay_service_already_running">CarPlay 服務已在執行</string>
     <string name="host_carplay_session_already_running">CarPlay 會話已在執行</string>
     <string name="host_this_device_cannot_create_an_offscreen_decoder_surface_check">此裝置無法建立後臺解碼畫面，請檢查圖形支援後重試。</string>
-    <string name="host_could_not_start_carplay_return_to_wheelplay_and_check">無法啟動 CarPlay，請返回 WheelPlay 檢查應用程式權限。</string>
+    <string name="host_could_not_start_carplay_return_to_teslaplay_and_check">無法啟動 CarPlay，請返回 TeslaPlay 檢查應用程式權限。</string>
     <string name="host_turn_on_wi_fi_in_this_device_s_system">請在此裝置的系統設定中開啟 Wi-Fi。</string>
     <string name="host_allow_precise_location_in_the_app_permissions">請在應用程式權限中允許精確定位。</string>
     <string name="host_allow_access_to_nearby_devices_in_the_app_permissions">請在應用程式權限中允許存取附近裝置。</string>
@@ -417,7 +417,7 @@
     <string name="host_wi_fi_direct">Wi-Fi Direct</string>
     <string name="host_pem">PEM</string>
     <string name="host_pkcs_12">PKCS#12</string>
-    <string name="ui_android_requires_precise_location_permission_to_read_wi_fi">Android 需要精確定位權限來讀取 Wi-Fi 掃描結果。請在下一步選擇精確定位，模糊定位不夠。WheelPlay 只使用掃描結果來匹配目前熱點並檢測頻道，不記錄或上傳結果。你也可以跳過並繼續使用自動模式。</string>
+    <string name="ui_android_requires_precise_location_permission_to_read_wi_fi">Android 需要精確定位權限來讀取 Wi-Fi 掃描結果。請在下一步選擇精確定位，模糊定位不夠。TeslaPlay 只使用掃描結果來匹配目前熱點並檢測頻道，不記錄或上傳結果。你也可以跳過並繼續使用自動模式。</string>
     <string name="ui_the_following_settings_are_unavailable_and_hidden_on_android">以下設定在 Android 9（API 28）不可用，已隱藏：\n• Wi-Fi P2P（5 GHz）：改用 LocalOnlyHotspot。\n• HEVC 軟體解碼器：改用硬體解碼。</string>
     <string name="ui_address_must_start_with_http_or_https_token_is">地址必須以 http:// 或 https:// 開頭。令牌可選，透過 Authorization 請求頭髮送。</string>
     <string name="ui_android_13_precise_location_enables_hotspot_channel_detection_if">Android 13 及以上需要精確定位權限來檢測熱點頻道。跳過後繼續使用自動模式。本次掃描不記錄或上傳定位，稍後可在 Android 應用程式權限中開啟。</string>
@@ -474,7 +474,7 @@
     <string name="web_disconnected">已中斷連線</string>
     <string name="web_reconnecting">正在重新連線…</string>
     <string name="web_connecting">正在連線…</string>
-    <string name="web_keep_wheelplay_in_the_foreground_on_android_tap_connect">請保持 Android 上的 WheelPlay 在前臺；點選連線 iPhone，按提示完成授權。</string>
+    <string name="web_keep_teslaplay_in_the_foreground_on_android_tap_connect">請保持 Android 上的 TeslaPlay 在前臺；點選連線 iPhone，按提示完成授權。</string>
     <string name="web_connected_waiting_for_video">已連線 · 等待畫面</string>
     <string name="web_waiting_for_iphone_video">等待 iPhone 畫面…</string>
     <string name="web_fallback">" · 已回退"</string>
@@ -567,4 +567,7 @@
     <string name="web_location_unavailable">暫時無法取得定位，請檢查裝置定位服務。</string>
     <string name="web_location_ready">已取得定位權限，將在連線期間分享瀏覽器 GPS 定位。</string>
     <string name="web_location_active">正在轉送瀏覽器 GPS 定位。</string>
+    <string name="ui_bring_teslaplay_to_the_foreground_on_android_then_tap">請先將 Android 上的 TeslaPlay 開啟到前臺，再點選連線 iPhone</string>
+    <string name="ui_teslaplay_tesla_experimental">TeslaPlay</string>
+    <string name="web_teslaplay_head_unit_display">TeslaPlay</string>
 </resources>

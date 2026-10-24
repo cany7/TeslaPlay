@@ -11,7 +11,7 @@ const packages = ['platforms;android-36', 'build-tools;36.0.0', 'ndk;28.2.136763
 
 function sdkFixture(t) {
   // Include spaces to check SDK paths and package arguments are kept intact.
-  const directory = mkdtempSync(join(tmpdir(), 'wheelplay sdk '));
+  const directory = mkdtempSync(join(tmpdir(), 'teslaplay sdk '));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const sdk = join(directory, 'Android SDK'), bin = join(directory, 'bin'), log = join(directory, 'sdkmanager.log');
   mkdirSync(sdk); mkdirSync(bin);
@@ -20,8 +20,9 @@ set -euo pipefail
 printf '%s\\n' "$@" > "$SDK_CALL_LOG"
 if [[ "\${MOCK_SDKMANAGER_FAIL:-0}" == 1 ]]; then exit 7; fi
 shift 2
+path_separator=/
 for package in "$@"; do
-  directory="$ANDROID_HOME/\${package//;/\\/}"
+  directory="$ANDROID_HOME/\${package//;/$path_separator}"
   mkdir -p "$directory"
   printf 'installed' > "$directory/package.xml"
 done

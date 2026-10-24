@@ -12,9 +12,9 @@ import { resourceStrings, renderBrowserTemplate } from './resource-strings.mjs';
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const messages = resourceStrings('values-zh-rCN');
 const root = new URL('../common/src/main/assets/web/', import.meta.url);
-const androidServer = await readFile(new URL('../common/src/main/java/com/shilapi/xcertplay/web/LanWebServer.kt', import.meta.url), 'utf8');
+const androidServer = await readFile(new URL('../common/src/main/java/io/github/cany7/teslaplay/web/LanWebServer.kt', import.meta.url), 'utf8');
 const csp = androidServer.match(/"(default-src 'self';[^"\n]+)"/)[1];
-const profile = await mkdtemp(join(tmpdir(), 'wheelplay-media-'));
+const profile = await mkdtemp(join(tmpdir(), 'teslaplay-media-'));
 function image(width, height, codec = 'mjpeg') {
   const result = spawnSync(ffmpeg, ['-v', 'error', '-f', 'lavfi', '-i', `testsrc=size=${width}x${height}:rate=1`,
     '-frames:v', '1', '-f', 'image2pipe', '-vcodec', codec, 'pipe:1']);
@@ -39,9 +39,9 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(result)); return;
   }
   if (req.url === '/i18n.js') {
-    res.setHeader('Content-Type', 'text/javascript'); res.end(`globalThis.wheelplayMessages=${JSON.stringify(messages)};`); return;
+    res.setHeader('Content-Type', 'text/javascript'); res.end(`globalThis.teslaplayMessages=${JSON.stringify(messages)};`); return;
   }
-  const file = { '/': 'index.html', '/app.js': 'app.js', '/desktop-input.js': 'desktop-input.js', '/text.js': 'text.js', '/browser-audio.js': 'browser-audio.js', '/browser-media-session.js': 'browser-media-session.js', '/browser-location.js': 'browser-location.js',
+  const file = { '/brand-storage.js': 'brand-storage.js', '/': 'index.html', '/app.js': 'app.js', '/desktop-input.js': 'desktop-input.js', '/text.js': 'text.js', '/browser-audio.js': 'browser-audio.js', '/browser-media-session.js': 'browser-media-session.js', '/browser-location.js': 'browser-location.js',
     '/style.css': 'style.css', '/audio-worklet.js': 'audio-worklet.js' }[req.url];
   if (!file) { res.writeHead(404); res.end(); return; }
   let body = await readFile(new URL(file, root));
@@ -141,7 +141,7 @@ try {
   });
   await command('Runtime.enable');
   await command('Page.navigate', { url: `http://127.0.0.1:${server.address().port}/` });
-  await wait(`!!window.wheelplayStats && !!document.getElementById('connect') && !document.getElementById('connect').disabled`);
+  await wait(`!!window.teslaplayStats && !!document.getElementById('connect') && !document.getElementById('connect').disabled`);
   await evaluate(`document.getElementById('code').value='123456';document.getElementById('connect-form').requestSubmit()`);
   await wait(showing);
   await evaluate(`

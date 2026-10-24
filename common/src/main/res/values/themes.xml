@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.Xcertplay" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.TeslaPlay" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">#B4D9B1</item>
         <item name="colorOnPrimary">#20361F</item>
         <item name="colorPrimaryContainer">#354D33</item>

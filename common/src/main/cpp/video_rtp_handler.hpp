@@ -8,7 +8,7 @@
 #include "srtp_packet.hpp"
 #include <srtp.h>
 
-namespace wheelplay {
+namespace teslaplay {
 // Dedicated to WheelPlay's fixed RTP setup (no RTP header extensions or aggregation).
 // The pinned Track::send runs outgoingChain synchronously. The caller retains the input frame
 // until send returns; only independently owned RTP packets reach RTCP/NACK/SRTP handlers.
@@ -34,9 +34,9 @@ public:
                 packet->reserve(size + SRTP_MAX_TRAILER_LEN);
                 packet->resize(size);
                 packet->dscp = 36;
-                packet->wheelplaySrtp = std::make_shared<SrtpPacketState>();
-                packet->wheelplaySrtp->metrics = metrics_;
-                packet->wheelplaySrtp->owner = packet.get();
+                packet->teslaplaySrtp = std::make_shared<SrtpPacketState>();
+                packet->teslaplaySrtp->metrics = metrics_;
+                packet->teslaplaySrtp->owner = packet.get();
                 auto* bytes = reinterpret_cast<uint8_t*>(packet->data());
                 bytes[0] = 0x80;
                 bytes[1] = config_->payloadType | (marker ? 0x80 : 0);

@@ -13,7 +13,7 @@ const savedDevice = { id: 'd'.repeat(32), secret: 's'.repeat(32), name: 'Chrome 
 const ok = data => ({ ok: true, json: async () => data });
 function fixture({ status = () => ok({ state: 'pending' }), stored = null, resume = () => ok({ token: 'resumed-token', name: savedDevice.name }), storageDisabled = false, search = '', tls = { available: true, port: 8443 }, href = 'http://server:8080/?code=123456#old' } = {}) {
   const elements = new Map(), timers = new Map(), sockets = [], requests = [], windowEvents = {};
-  const preferences = new Map(stored ? [['wheelplay.browserDevice', JSON.stringify(stored)]] : []);
+  const preferences = new Map(stored ? [['teslaplay.browserDevice', JSON.stringify(stored)]] : []);
   let nextTimer = 0;
   const element = id => {
     if (!elements.has(id)) elements.set(id, { hidden: false, value: '123456', handlers: {}, checked: false,
@@ -47,7 +47,7 @@ function fixture({ status = () => ok({ state: 'pending' }), stored = null, resum
       return ok({ id: 'request', secret: 'poll-secret', expiresIn: 120 });
     },
   };
-  context.wheelplayMessages = messages;
+  context.teslaplayMessages = messages;
   vm.runInNewContext(source, context);
   return { element, sockets, requests, preferences, windowEvents,
     submit: () => element('connect-form').handlers.submit({ preventDefault() {} }),
@@ -62,7 +62,7 @@ test('QR approval remembers the browser and waits for the explicit launch button
   assert.equal(f.element('remembered-device').hidden, false);
   assert.equal(f.element('code').required, false);
   assert.equal(f.element('connect-label').textContent, '启动显示');
-  assert.deepEqual(JSON.parse(f.preferences.get('wheelplay.browserDevice')), savedDevice);
+  assert.deepEqual(JSON.parse(f.preferences.get('teslaplay.browserDevice')), savedDevice);
   f.element('hide-toolbar').checked = true; f.element('renderer-video-canvas').checked = true;
   f.submit(); await flush();
   assert.equal(f.sockets.length, 1);
@@ -107,7 +107,7 @@ test('reopening a remembered browser authenticates without QR or stream until la
 test('removed device clears saved credentials and offers QR or code pairing', async () => {
   const f = fixture({ stored: savedDevice, resume: () => ({ ok: false, status: 401 }) });
   await flush();
-  assert.equal(f.preferences.has('wheelplay.browserDevice'), false);
+  assert.equal(f.preferences.has('teslaplay.browserDevice'), false);
   assert.equal(f.element('code').required, true);
   assert.equal(f.element('code').disabled, false);
   assert.equal(f.element('qr-pairing').hidden, false);
@@ -123,7 +123,7 @@ test('temporary service failure preserves remembered credentials and launch retr
     return ok({ token: 'recovered-token', name: savedDevice.name });
   } });
   await flush();
-  assert.equal(f.preferences.has('wheelplay.browserDevice'), true);
+  assert.equal(f.preferences.has('teslaplay.browserDevice'), true);
   assert.equal(f.element('connect').disabled, false);
   assert.equal(f.requests.some(r => r.url.endsWith('/request')), false);
   available = true; f.submit(); await flush();
@@ -140,7 +140,7 @@ test('quick browser link pairs but keeps launch options available until a click'
 test('pagehide and back navigation retain device memory and never automatically launch', async () => {
   const f = fixture({ stored: savedDevice }); await flush();
   f.windowEvents.pagehide();
-  assert.equal(f.preferences.has('wheelplay.browserDevice'), true);
+  assert.equal(f.preferences.has('teslaplay.browserDevice'), true);
   assert.equal(f.requests.some(r => r.url.endsWith('/revoke')), false);
   f.windowEvents.pageshow({ persisted: true }); await flush();
   assert.equal(f.sockets.length, 0);

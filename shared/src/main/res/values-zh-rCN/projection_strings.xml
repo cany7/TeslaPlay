@@ -7,7 +7,7 @@
     <string name="projection_failed">无法切换输入源：%1$s</string>
     <string name="projection_waiting">等待连接投影输入源</string>
     <string name="projection_active">输入源：%1$s</string>
-    <string name="projection_busy">已有投影输入源运行，请在 WheelPlay 中切换输入源。</string>
+    <string name="projection_busy">已有投影输入源运行，请在 TeslaPlay 中切换输入源。</string>
     <string name="aa_tcp_title">Android Auto 手机地址</string>
     <string name="aa_tcp_hint">在手机 Android Auto 开发者设置中启动 Head Unit Server，输入宿主可访问的手机地址（TCP 5277）。音频由宿主播放；麦克风使用 Android 设置，不支持浏览器麦克风。</string>
     <string name="aa_invalid_address">请输入有效的手机 IPv4 地址。</string>
@@ -17,8 +17,8 @@
     <string name="aa_local_connect">连接本机 Android Auto</string>
     <string name="aa_local_help">首次设置与连接帮助</string>
     <string name="aa_local_settings">打开 Android Auto 设置</string>
-    <string name="aa_local_setup">1. 打开 Android Auto 设置，完成首次使用配置。\n2. 连续点击版本信息（通常为 10 次），确认开启开发者模式。\n3. 在菜单中选择“启动车机服务器”（Start head unit server）。\n4. 返回 WheelPlay，点击“连接本机 Android Auto”。\n\n保持车机服务器运行，下次即可一键连接；手机重启后可能需要重新开启。无需填写地址或连接数据线。声音由本机播放，麦克风遵循 Android 麦克风设置。同机兼容性仍需真机验证。</string>
-    <string name="aa_local_unavailable">本机未安装 Android Auto，或已将其停用。请在受支持的设备上安装或启用 Android Auto，完成首次配置后返回 WheelPlay。部分版本的设置按钮会打开系统应用详情页。</string>
+    <string name="aa_local_setup">1. 打开 Android Auto 设置，完成首次使用配置。\n2. 连续点击版本信息（通常为 10 次），确认开启开发者模式。\n3. 在菜单中选择“启动车机服务器”（Start head unit server）。\n4. 返回 TeslaPlay，点击“连接本机 Android Auto”。\n\n保持车机服务器运行，下次即可一键连接；手机重启后可能需要重新开启。无需填写地址或连接数据线。声音由本机播放，麦克风遵循 Android 麦克风设置。同机兼容性仍需真机验证。</string>
+    <string name="aa_local_unavailable">本机未安装 Android Auto，或已将其停用。请在受支持的设备上安装或启用 Android Auto，完成首次配置后返回 TeslaPlay。部分版本的设置按钮会打开系统应用详情页。</string>
     <string name="aa_local_server_unavailable">无法连接本机 Android Auto。请打开“首次设置与连接帮助”，在 Android Auto 中启动车机服务器后重试。</string>
     <string name="aa_local_settings_unavailable">无法打开 Android Auto 设置。请在系统设置中搜索 Android Auto，并按照引导完成设置。</string>
     <string name="source_tab">输入源</string>

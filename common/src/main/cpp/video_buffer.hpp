@@ -4,7 +4,7 @@
 #include <mutex>
 #include <vector>
 
-namespace wheelplay {
+namespace teslaplay {
 // Only returned buffers are cached; live frames remain owned by their Kotlin reference count.
 struct VideoPool {
     std::mutex mutex;

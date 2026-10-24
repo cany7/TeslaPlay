@@ -22,16 +22,16 @@ test('all browser messages exist in each Android resource catalog', () => {
   }
 });
 test('localized messages preserve positional arguments without interpreting their contents', () => {
-  globalThis.wheelplayMessages = { test: '%2$s / %1$s / %2$s' };
+  globalThis.teslaplayMessages = { test: '%2$s / %1$s / %2$s' };
   try { assert.equal(t('test', '$& <script>', 'iPhone'), 'iPhone / $& <script> / iPhone'); }
-  finally { delete globalThis.wheelplayMessages; }
+  finally { delete globalThis.teslaplayMessages; }
 });
 test('browser template interpolation escapes markup', () => {
   assert.equal(renderBrowserTemplate('<p>{{text}}</p>', { text: '"<&' }), '<p>&quot;&lt;&amp;</p>');
 });
 
 test('Android exports every browser template and literal message key, not just the desktop fixture', () => {
-  const android = readFileSync(new URL('../common/src/main/java/com/shilapi/xcertplay/web/BrowserStrings.kt', import.meta.url), 'utf8');
+  const android = readFileSync(new URL('../common/src/main/java/io/github/cany7/teslaplay/web/BrowserStrings.kt', import.meta.url), 'utf8');
   const keys = new Set([...android.matchAll(/"([a-z0-9_]+)"\s+to\s+UiR\.string\.([a-z0-9_]+)/g)].map(match => {
     assert.equal(match[1], match[2]); return match[1];
   }));

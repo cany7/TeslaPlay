@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(wheelplay_rtc LANGUAGES C CXX)
+project(teslaplay_rtc LANGUAGES C CXX)
 include(FetchContent)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -34,7 +34,7 @@ if(NOT libdatachannel_POPULATED)
 endif()
 # libSRTP's find module otherwise searches host libraries during Android cross compilation.
 include(dependency_patch.cmake)
-wheelplay_replace("${libdatachannel_SOURCE_DIR}/deps/libsrtp/CMakeLists.txt"
+teslaplay_replace("${libdatachannel_SOURCE_DIR}/deps/libsrtp/CMakeLists.txt"
     "  find_package(MbedTLS REQUIRED)" [=[
   if(TARGET mbedcrypto)
     set(MBEDTLS_LIBRARIES mbedcrypto)
@@ -45,14 +45,14 @@ wheelplay_replace("${libdatachannel_SOURCE_DIR}/deps/libsrtp/CMakeLists.txt"
 add_subdirectory("${libdatachannel_SOURCE_DIR}" "${libdatachannel_BINARY_DIR}")
 include(media_send_feedback.cmake)
 include(srtp_optimization.cmake)
-add_library(wheelplay-rtc SHARED rtc_bridge.cpp video_crypto.cpp)
-target_link_libraries(wheelplay-rtc PRIVATE datachannel-static mbedcrypto log)
-target_link_options(wheelplay-rtc PRIVATE "-Wl,-z,max-page-size=16384")
+add_library(teslaplay-rtc SHARED rtc_bridge.cpp video_crypto.cpp)
+target_link_libraries(teslaplay-rtc PRIVATE datachannel-static mbedcrypto log)
+target_link_options(teslaplay-rtc PRIVATE "-Wl,-z,max-page-size=16384")
 
 # Standalone device validation executable; not an APK target and absent from release builds.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_executable(wheelplay-srtp-check EXCLUDE_FROM_ALL ../../../../test/native/srtp-packet.cpp)
-    target_include_directories(wheelplay-srtp-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_compile_options(wheelplay-srtp-check PRIVATE -UNDEBUG)
-    target_link_libraries(wheelplay-srtp-check PRIVATE srtp2)
+    add_executable(teslaplay-srtp-check EXCLUDE_FROM_ALL ../../../../test/native/srtp-packet.cpp)
+    target_include_directories(teslaplay-srtp-check PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_compile_options(teslaplay-srtp-check PRIVATE -UNDEBUG)
+    target_link_libraries(teslaplay-srtp-check PRIVATE srtp2)
 endif()

@@ -25,7 +25,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "WheelPlay"
+rootProject.name = "TeslaPlay"
 include(":common")
 include(":mobile")
 

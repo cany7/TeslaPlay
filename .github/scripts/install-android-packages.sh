@@ -10,8 +10,9 @@ if (( $# == 0 )); then
 fi
 
 missing=()
+path_separator=/
 for package in "$@"; do
-  directory="${ANDROID_HOME}/${package//;/\/}"
+  directory="${ANDROID_HOME}/${package//;/$path_separator}"
   if [[ -f "$directory/package.xml" || -f "$directory/source.properties" ]]; then
     echo "Using installed SDK package: $package"
   else

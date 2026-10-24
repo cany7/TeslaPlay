@@ -393,7 +393,7 @@
     <string name="host_carplay_service_already_running">CarPlay service already running</string>
     <string name="host_carplay_session_already_running">CarPlay session already running</string>
     <string name="host_this_device_cannot_create_an_offscreen_decoder_surface_check">This device cannot create an offscreen decoder surface. Check graphics support and try again.</string>
-    <string name="host_could_not_start_carplay_return_to_wheelplay_and_check">Could not start CarPlay. Return to WheelPlay and check app permissions.</string>
+    <string name="host_could_not_start_carplay_return_to_teslaplay_and_check">Could not start CarPlay. Return to TeslaPlay and check app permissions.</string>
     <string name="host_turn_on_wi_fi_in_this_device_s_system">Turn on Wi-Fi in this device\'s system settings.</string>
     <string name="host_allow_precise_location_in_the_app_permissions">Allow precise location in the app permissions.</string>
     <string name="host_allow_access_to_nearby_devices_in_the_app_permissions">Allow access to nearby devices in the app permissions.</string>
@@ -417,7 +417,7 @@
     <string name="host_wi_fi_direct">Wi-Fi Direct</string>
     <string name="host_pem">PEM</string>
     <string name="host_pkcs_12">PKCS#12</string>
-    <string name="ui_android_requires_precise_location_permission_to_read_wi_fi">Android requires precise location permission to read Wi-Fi scan results. Choose Precise in the next prompt; approximate access isn\'t enough. WheelPlay uses scan results only to match your active hotspot and detect its channel. Results aren\'t recorded or uploaded. You can skip this and continue with Auto.</string>
+    <string name="ui_android_requires_precise_location_permission_to_read_wi_fi">Android requires precise location permission to read Wi-Fi scan results. Choose Precise in the next prompt; approximate access isn\'t enough. TeslaPlay uses scan results only to match your active hotspot and detect its channel. Results aren\'t recorded or uploaded. You can skip this and continue with Auto.</string>
     <string name="ui_the_following_settings_are_unavailable_and_hidden_on_android">The following settings are unavailable and hidden on Android 9 (API 28):\n• Wi-Fi P2P (5 GHz) — LocalOnlyHotspot is used instead.\n• HEVC software decoder — hardware decoding is used instead.</string>
     <string name="ui_address_must_start_with_http_or_https_token_is">Address must start with http:// or https://. Token is optional and sent as an Authorization bearer token.</string>
     <string name="ui_android_13_precise_location_enables_hotspot_channel_detection_if">Android 13+: precise location enables hotspot channel detection. If skipped, the connection continues with Auto. This scan does not record or upload location; you can enable access later in Android app permissions.</string>
@@ -474,7 +474,7 @@
     <string name="web_disconnected">Disconnected</string>
     <string name="web_reconnecting">Reconnecting…</string>
     <string name="web_connecting">Connecting…</string>
-    <string name="web_keep_wheelplay_in_the_foreground_on_android_tap_connect">Keep WheelPlay in the foreground on Android. Tap Connect iPhone and complete any permission prompts.</string>
+    <string name="web_keep_teslaplay_in_the_foreground_on_android_tap_connect">Keep TeslaPlay in the foreground on Android. Tap Connect iPhone and complete any permission prompts.</string>
     <string name="web_connected_waiting_for_video">Connected · Waiting for video</string>
     <string name="web_waiting_for_iphone_video">Waiting for iPhone video…</string>
     <string name="web_fallback">" · Fallback"</string>
@@ -567,4 +567,7 @@
     <string name="web_location_unavailable">Location is currently unavailable. Check the device location service.</string>
     <string name="web_location_ready">Location permission granted. Browser GPS will be shared while connected.</string>
     <string name="web_location_active">Browser GPS forwarding is active.</string>
+    <string name="ui_bring_teslaplay_to_the_foreground_on_android_then_tap">Bring TeslaPlay to the foreground on Android, then tap Connect iPhone</string>
+    <string name="ui_teslaplay_tesla_experimental">TeslaPlay</string>
+    <string name="web_teslaplay_head_unit_display">TeslaPlay</string>
 </resources>

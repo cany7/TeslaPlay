@@ -117,7 +117,7 @@
     <string name="settings_hostname">Web 網域名稱（可選）</string>
     <string name="settings_mdns_hostname">區域網路 mDNS 主機名稱</string>
     <string name="settings_mdns_description">預設使用 wheelplay.local。在同一區域網路內透過 HTTP 監聽埠存取；車機網路必須允許多點傳送。</string>
-    <string name="settings_mdns_invalid">請輸入單一標籤的 .local 主機名稱，例如 wheelplay.local</string>
+    <string name="settings_mdns_invalid">請輸入單一標籤的 .local 主機名稱，例如 teslaplay.local</string>
     <string name="settings_mdns_saved">已儲存 mDNS 主機名稱</string>
     <string name="settings_mdns_save_failed">無法儲存 mDNS 主機名稱</string>
     <string name="settings_use_ip">使用 IP 地址</string>
@@ -167,7 +167,7 @@
     <string name="settings_about_diagnostics">關於與診斷</string>
     <string name="settings_exporting">正在儲存報告…</string>
     <string name="settings_export">儲存診斷報告</string>
-    <string name="settings_export_downloads">報告儲存到 Downloads/WheelPlay。不會自動上傳，報告排除協議載荷和憑據。</string>
+    <string name="settings_export_downloads">報告儲存到 Downloads/TeslaPlay。不會自動上傳，報告排除協議載荷和憑據。</string>
     <string name="settings_export_document">請選擇報告儲存位置。不會自動上傳，報告排除協議載荷和憑據。</string>
     <string name="settings_licenses">基於 xcertplay / DiPlay，保留 GPL-3.0 與 AGPL-3.0 許可宣告。CarPlay 與 NIO 圖示屬於各自權利人。</string>
     <string name="settings_open_source">開源</string>
