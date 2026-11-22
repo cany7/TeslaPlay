@@ -2,35 +2,54 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
-Run CarPlay on an Android phone and use it from a Tesla browser. TeslaPlay builds on WheelPlay's CarPlay, streaming, pairing, and touch implementation, with Tesla window profiles, hotspot connections, iPhone Bluetooth audio, and DuckDNS HTTPS.
+Use iPhone CarPlay through your Tesla browser. TeslaPlay runs on an Android phone, streams CarPlay to the car's browser, and sends touch input back to your iPhone.
 
-Repository: [cany7/TeslaPlay](https://github.com/cany7/TeslaPlay). The version is **0.1.1**. Application IDs are `io.github.cany7.teslaplay` and `io.github.cany7.teslaplay.debug`. No unverified release download link is provided; see the build instructions below for local artifacts.
+**Connection: iPhone → TeslaPlay on Android → Tesla browser.**
+
+## Features
+
+- USB or wireless iPhone connection with browser multitouch.
+- WebRTC video, HEVC encoding, and a 60 FPS setting, with JPEG/WebP image streaming for compatibility.
+- Separate Tesla side-window and large-window profiles, resolution presets, custom dimensions, and scaling.
+- Day, night, and system appearance, with adjustable CarPlay icon and text size.
+- Android, browser, or iPhone Bluetooth audio output; iPhone, Android, or browser location.
+- On-screen Home, Back, Siri, Previous, Play/Pause, and Next buttons.
+- DuckDNS HTTPS certificate issuance and automatic renewal, QR pairing, device management, settings backup, and Bluetooth-triggered startup.
+
+Experimental [Android Auto](docs/ANDROID_AUTO.md) and [VNC](docs/VNC.md) sources are also available. One projection source and one controlling browser session are supported at a time.
+
+## Requirements
+
+- An Android 9 or newer phone supporting a hotspot and your chosen USB/wireless connection method.
+- A CarPlay-compatible iPhone.
+- A Tesla browser that can connect to the Android hotspot and reach the phone's service.
+- For DuckDNS HTTPS: your own DuckDNS domain and token, plus internet access.
+
+Tested devices:
+
+| Device | OS |
+| --- | --- |
+| iPhone Air | iOS 27.2 RC |
+| Xiaomi 15 Ultra | HyperOS 4.0.0.18 Beta |
 
 ## Getting started
 
-Use an Android 9 or newer host phone, an iPhone, and a Tesla connected to the host's hotspot. Complete setup and checks while parked.
+1. Install a TeslaPlay APK containing the CarPlay authentication resources, open the app, and grant the required permissions. For a local build, see below.
+2. Enable the Android hotspot and connect your Tesla. When using the hotspot for wireless CarPlay, enter its name and password in the app. External Shizzi can be used for hotspot internet sharing.
+3. Choose a connection method in the Tesla network and HTTPS settings. The default is a no-root VPN; approve Android's VPN prompt. Root mode is available for devices with the required access configured.
+4. For DuckDNS HTTPS, select the **DuckDNS** certificate type, enter your domain and token, accept the certificate service terms, and request a certificate. The app manages DNS updates, certificate issuance, and renewal.
+5. Connect the iPhone over USB or wirelessly and approve its CarPlay prompt.
+6. Open the complete address shown by the app in the Tesla browser, such as `https://your-name.duckdns.org:8443/`. Scan the page's QR code or enter a pairing code, then start the display.
 
-1. Install a provisioned TeslaPlay APK. CarPlay authentication resources are bundled at build time and loaded automatically on first use. The app no longer offers a DiPlay import page or onboarding flow; a build missing resources must be replaced with a complete build.
-2. Enable the Android hotspot and connect the Tesla or computer. Hotspot is the default wireless connection method; configure its name and password as required by the app. Use external Shizzi if hotspot internet access is needed. TeslaPlay does not implement tethering or hotspot DNS control.
-3. Open the Tesla network and HTTPS settings. The default connection uses a no-root VPN with the fixed entrance `100.96.0.1`; accept Android's VPN permission. A root connection option remains available for existing setups.
-4. Select **DuckDNS** as the certificate type, enter your domain and token, accept the certificate service terms, and save/request a certificate. The app updates the domain's A record to the active entrance and manages DNS-01 issuance and renewal; no manual IPv4 update on DuckDNS is needed. Check the actual serving certificate and renewal state, rather than only the last task result.
-5. Open the complete address shown by the app, for example `https://your-name.duckdns.org:8443/`. The default HTTPS port is `8443`; include both the scheme and port. DNS resolution does not relay the phone's service through the internet: the browser still needs network access to the phone.
-6. Scan the browser's QR code or enter a pairing code. Keep the app in the foreground, connect the iPhone over USB or wirelessly, and complete Android permissions and the iPhone's CarPlay prompt.
+Complete initial setup while parked. Keep the hotspot and TeslaPlay service running during use. DuckDNS provides DNS resolution; the browser still needs network access to the phone. The default HTTPS port is **8443**—include both `https://` and the port in the address.
 
-Pairing restoration depends on the browser retaining site data and using the same address. HTTP and HTTPS are separate origins. Changing the address, clearing site data, or revoking a browser can require pairing again.
+## Common settings
 
-## Features and settings
-
-- **Display:** WebRTC, HEVC, and 60 FPS settings remain available. HEVC defaults on and image compatibility quality defaults to 100. Tesla side and large windows store separate profiles. Window profiles are the single source of output dimensions; saving marks a pending change, and explicit apply reconnects. Browser resizing does not interrupt an active session automatically.
-- **Display settings:** Appearance controls day/night/system behavior; icon and text size controls CarPlay UI density. Image format and quality affect image streaming and WebRTC fallback only. WebRTC stall tolerance is under advanced settings. Safe areas and right-hand-drive layout remain available.
-- **Audio:** Choose Android, browser, or **iPhone Bluetooth output** in one selector. Bluetooth output lets the iPhone manage its own audio and microphone; choose Tesla or another target on the iPhone. Android does not relay this audio. Apply a changed selection by reconnecting; the UI distinguishes the saved choice from the active session.
-- **Browser and touch:** QR pairing, multitouch, the standard toolbar and optional virtual buttons controlled only from the Android app’s browser settings. Browser microphone and GPS require trusted HTTPS and browser permission.
-- **Location:** The iPhone's location is the default, with Android and browser options. Location settings contain no OEM card. The vehicle is fixed to Tesla internally, and the launcher and CarPlay return shortcut use the specified Tesla T image.
-- **Maintenance:** Settings search and backup, paired-device management, selected Bluetooth device service startup, and local diagnostics. Ordinary settings backups exclude certificate private keys, DuckDNS tokens, and CarPlay authentication resources.
-
-Experimental [Android Auto](docs/ANDROID_AUTO.md), [VNC](docs/VNC.md), and diagnostic sources remain available; one projection source and one controlling browser session can run at a time. ICCOA is removed from source selection. Android Auto uses the Android host for audio and microphone; the existing VNC transport does not support TLS/VeNCrypt.
-
-Desktop checks do not replace Tesla and iPhone validation. Check window sizes, music/navigation/calls/Siri, gestures and Android background behavior on the actual devices while parked.
+- **Window and display:** Choose the side/large window and output dimensions in the Android app. Save, then apply and reconnect to activate the configuration.
+- **Audio:** For iPhone Bluetooth output, select Tesla or another Bluetooth audio device on the iPhone. The iPhone handles audio and the microphone. Apply and reconnect after changing the audio output.
+- **On-screen buttons:** Enable them in the Android app's browser settings. Their appearance follows CarPlay's day/night mode.
+- **Browser permissions:** Browser microphone and location require trusted HTTPS and browser permission.
+- **Pairing and backup:** Retain site data and use the same address to restore pairing. Changing the address or clearing data may require pairing again. Settings backups exclude certificate private keys, DuckDNS tokens, and authentication resources.
 
 ## Build
 
@@ -40,45 +59,30 @@ Desktop checks do not replace Tesla and iPhone validation. Check window sizes, m
 | Gradle / Android Gradle Plugin | 9.3.1 / 9.1.0 |
 | Android SDK / Build Tools | API 36 / 36.0.0 |
 | Android NDK / CMake | 28.2.13676358 / 3.22.1 |
-| Node.js | 22 or newer |
 
-Set the SDK using `ANDROID_HOME` or `sdk.dir` in an untracked `local.properties`. The Gradle wrapper is included. The first native build fetches pinned libdatachannel and Mbed TLS sources.
+Set the Android SDK path using `ANDROID_HOME` or `sdk.dir` in `local.properties`. The first build downloads dependencies and native library sources.
 
-Provide matching authentication resources as separate local build inputs:
+Place matching CarPlay authentication resources at:
 
 ```text
 .local/auth-assets/offline-mfi/identity.pk8
 .local/auth-assets/offline-mfi/certificate.p7b
 ```
 
-Alternatively, set `TESLAPLAY_AUTH_ASSETS_DIR` to a directory containing `offline-mfi/`. Do not commit these resources or include them in source archives. Their provenance and hashes are recorded in [third-party notices](docs/TESLAPLAY_THIRD_PARTY_NOTICES.md). Build a provisioned debug APK with:
+Alternatively, set `TESLAPLAY_AUTH_ASSETS_DIR` to a directory containing `offline-mfi/`. These resources are not included in the source tree; see the [third-party notices](docs/TESLAPLAY_THIRD_PARTY_NOTICES.md) for provenance.
 
 ```sh
 ./gradlew :mobile:assembleProvisionedDebug
 ```
 
-This task verifies that both resources are complete and match the APK contents. Output is `mobile/build/outputs/apk/debug/mobile-debug.apk`, version `0.1.1`, application ID `io.github.cany7.teslaplay.debug`. `assembleDebug` is useful for compilation checks, but a build without these resources is not a usable CarPlay delivery. There is no post-install resource import UI.
+The output is `mobile/build/outputs/apk/debug/mobile-debug.apk`, with debug application ID `io.github.cany7.teslaplay.debug`. This task verifies that the authentication resources are complete and correctly packaged.
 
-The new application ID installs as a separate app and cannot replace `moe.feng.wheelplay.debug`. Settings, valid certificates, and pairing data do not transfer automatically. An ordinary settings backup is not a complete migration. Retain old data until the new app is verified, and do not let both apps occupy the VPN entrance and service ports simultaneously.
+## Documentation and credits
 
-Run checks relevant to your changes:
+- [Architecture](docs/ARCHITECTURE.md)
+- [Android Auto](docs/ANDROID_AUTO.md) · [VNC](docs/VNC.md)
+- [Third-party and artwork notices](docs/TESLAPLAY_THIRD_PARTY_NOTICES.md) · [App icon](docs/APP_ICON.md)
 
-```sh
-./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest \
-  :common:assembleDebugAndroidTest :mobile:lintDebug
-npm ci
-npm test
-npm run check
-```
+TeslaPlay is based on WheelPlay and uses or draws on implementations from DiPlay / xcertplay, DiPlay-tesla, and DashPlay. Thanks to their authors and contributors.
 
-`assembleDebugAndroidTest` only compiles the instrumented test APK and does not establish device validation. Run `npm run demo` for a synthetic desktop fixture at `http://localhost:8081` with pairing code `123456`; this fixture does not connect a real phone.
-
-## Documentation and origins
-
-- [Reused sources and commits](docs/UPSTREAM.md)
-- [Third-party and artwork notices](docs/TESLAPLAY_THIRD_PARTY_NOTICES.md)
-- [Icon source and exports](docs/APP_ICON.md)
-
-`mobile/` packages the app, `common/` contains the host UI, web service, and projection sources, and `shared/` contains protocol components and shared resources. `website/` retains the separate website code; it is not a confirmed deployed TeslaPlay download service. Historical implementation documents retain upstream context; this README describes the current product flow.
-
-TeslaPlay reuses WheelPlay, DiPlay / xcertplay, DiPlay-tesla, DashPlay, and other projects, retaining their authors and applicable licenses. See [LICENSE](LICENSE), [upstream third-party notices](docs/upstream/THIRD_PARTY_NOTICES.md), and About → License in the app. Code licenses do not relicense authentication resources or Tesla trademarks and images. This is not an official Tesla product.
+See [LICENSE](LICENSE) and the [third-party notices](docs/upstream/THIRD_PARTY_NOTICES.md). Components retain their original licenses. Authentication resources, Tesla trademarks, and artwork remain subject to their respective terms. TeslaPlay is an independent project and is not an official Tesla product.
